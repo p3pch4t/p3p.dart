@@ -1,12 +1,33 @@
+import 'package:dart_pg/dart_pg.dart';
 import 'package:p3p/p3p.dart';
 import 'package:test/test.dart';
 
-void main() {
-  group('library v1', () async {
-    final p3p = await P3p.createSession('store', 'sessionName');
+const privateKeyPassword = "test";
 
+void main() async {
+  final userID = ['testUser01', '<test@test.test>'].join(' ');
+  final testPk = await OpenPGP.generateKey(
+    [userID],
+    privateKeyPassword,
+  );
+  final p3p = await P3p.createSession(
+    '/tmp/p3p_test_store',
+    testPk.fingerprint,
+    testPk.armor(),
+    privateKeyPassword,
+  );
+
+  print("testing as: ${testPk.fingerprint} (${testPk.keyID})");
+  group('library v1', () {
     test('getSelfInfo', () => p3p.getSelfInfo());
-    test('sendMessage', () => p3p.sendMessage());
+    test('sendMessage', () async {
+      final userInfo = await p3p.getSelfInfo();
+      final err = await p3p.sendMessage(userInfo, "test", null);
+      if (err != null) {
+        fail(err.toString());
+      }
+      await Future.delayed(Duration(seconds: 5));
+    });
     test('getChats', () => p3p.getChats());
     test('getUnread', () => p3p.getUnread());
   });
