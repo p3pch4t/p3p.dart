@@ -12,7 +12,6 @@ void main() async {
   );
   final p3p = await P3p.createSession(
     '/tmp/p3p_test_store',
-    testPk.fingerprint,
     testPk.armor(),
     privateKeyPassword,
   );
@@ -26,9 +25,6 @@ void main() async {
       if (err != null) {
         fail(err.toString());
       }
-      await Future.delayed(Duration(seconds: 5));
     });
-    test('getChats', () => p3p.getChats());
-    test('getUnread', () => p3p.getUnread());
   });
 }
