@@ -28,15 +28,16 @@ class PublicKey {
   Future<String> encrypt(String data, pgp.PrivateKey privatekey) async {
     print("publickey.dart: createTextMessage ($data)");
     pgp.Message msg = pgp.Message.createTextMessage(data);
-    print("publickey.dart: sign");
-    msg = await msg.sign(
-      [privatekey],
-    );
+
     print("publickey.dart: encrypt");
     msg = await msg.encrypt(
       encryptionKeys: [
         await pgp.OpenPGP.readPublicKey(publickey),
       ],
+    );
+    print("publickey.dart: sign");
+    msg = await msg.sign(
+      [privatekey],
     );
     print("publickey.dart: armor");
     return msg.armor();
