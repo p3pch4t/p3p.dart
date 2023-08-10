@@ -2,11 +2,9 @@ import 'dart:convert';
 
 import 'package:dart_pg/dart_pg.dart' as pgp;
 import 'package:hive/hive.dart';
-import 'package:p3p/src/chat.dart';
-import 'package:p3p/src/endpoint.dart';
-import 'package:p3p/src/event.dart';
-import 'package:p3p/src/publickey.dart';
+import 'package:p3p/p3p.dart';
 import 'package:p3p/src/reachable/local.dart';
+import 'package:p3p/src/reachable/relay.dart';
 
 part 'userinfo.g.dart';
 
@@ -32,6 +30,37 @@ class UserInfo {
   @HiveField(4)
   List<Message> messages = [];
 
+  @HiveField(5)
+  DateTime lastMessage = DateTime.fromMicrosecondsSinceEpoch(0);
+
+  Future<void> refresh(LazyBox<UserInfo> userinfoBox) async {
+    final ui = (await userinfoBox.get(publicKey.fingerprint));
+    if (ui == null) return;
+    publicKey = ui.publicKey;
+    endpoint = ui.endpoint;
+    events = ui.events;
+    name = ui.name;
+    messages = ui.messages;
+    lastMessage = ui.lastMessage;
+  }
+
+  static Future<UserInfo?> create(
+    String publicKey,
+    LazyBox<UserInfo> userinfoBox,
+  ) async {
+    final pubKey = await PublicKey.create(publicKey);
+    if (pubKey == null) return null;
+    final ui = UserInfo(
+      publicKey: pubKey,
+      endpoint: [
+        Endpoint(protocol: "relay", host: "mrcyjanek.net:3847", extra: ""),
+      ],
+      name: "unknown [relay]",
+    );
+    await userinfoBox.put(ui.publicKey.fingerprint, ui);
+    return ui;
+  }
+
   Future<void> relayEvents(
       pgp.PrivateKey privatekey, LazyBox<UserInfo> userinfoBox) async {
     if (events.isEmpty) {
@@ -44,12 +73,18 @@ class UserInfo {
     final body = await publicKey.encrypt(bodyJson, privatekey);
 
     for (var endp in endpoint) {
-      final resp = await ReachableLocal().reach(
-        endp,
-        body,
-        privatekey,
-        userinfoBox,
-      );
+      P3pError? resp;
+      switch (endp.protocol) {
+        case "local" || "locals":
+          resp = await ReachableLocal()
+              .reach(endp, body, privatekey, userinfoBox, publicKey);
+          break;
+        case "relay" || "relays":
+          resp = await ReachableRelay()
+              .reach(endp, body, privatekey, userinfoBox, publicKey);
+        default:
+      }
+
       if (resp == null) {
         events = [];
         await userinfoBox.put(publicKey.fingerprint, this);

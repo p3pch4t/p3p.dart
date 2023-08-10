@@ -9,6 +9,7 @@ class Message {
     required this.type,
     required this.text,
     required this.uuid,
+    required this.incoming,
   });
 
   @HiveField(0)
@@ -20,13 +21,16 @@ class Message {
   @HiveField(2)
   String uuid;
 
-  static Message? fromEvent(Event evt) {
+  @HiveField(3)
+  bool incoming;
+
+  static Message? fromEvent(Event evt, bool incoming) {
     if (evt.type == EventType.message) return null;
     return Message(
-      type: MessageType.text,
-      text: evt.data["text"],
-      uuid: evt.uuid,
-    );
+        type: MessageType.text,
+        text: evt.data["text"],
+        uuid: evt.uuid,
+        incoming: incoming);
   }
 }
 

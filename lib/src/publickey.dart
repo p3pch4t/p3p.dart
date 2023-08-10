@@ -5,13 +5,18 @@ part 'publickey.g.dart';
 
 @HiveType(typeId: 1)
 class PublicKey {
-  static Future<PublicKey> create(String armoredPublicKey) async {
-    final publicKey = await pgp.OpenPGP.readPublicKey(armoredPublicKey);
-    publicKey.fingerprint;
-    return PublicKey(
-      fingerprint: publicKey.fingerprint,
-      publickey: publicKey.armor(),
-    );
+  static Future<PublicKey?> create(String armoredPublicKey) async {
+    try {
+      final publicKey = await pgp.OpenPGP.readPublicKey(armoredPublicKey);
+      publicKey.fingerprint;
+      return PublicKey(
+        fingerprint: publicKey.fingerprint,
+        publickey: publicKey.armor(),
+      );
+    } catch (e) {
+      print(e);
+    }
+    return null;
   }
 
   PublicKey({
@@ -26,20 +31,16 @@ class PublicKey {
   String publickey;
 
   Future<String> encrypt(String data, pgp.PrivateKey privatekey) async {
-    print("publickey.dart: createTextMessage ($data)");
-    pgp.Message msg = pgp.Message.createTextMessage(data);
-
-    print("publickey.dart: encrypt");
-    msg = await msg.encrypt(
+    final pubkey = await pgp.OpenPGP.readPublicKey(publickey);
+    final msg = await pgp.OpenPGP.encrypt(
+      pgp.Message.createTextMessage(data),
       encryptionKeys: [
-        await pgp.OpenPGP.readPublicKey(publickey),
+        pubkey,
+      ],
+      signingKeys: [
+        privatekey,
       ],
     );
-    print("publickey.dart: sign");
-    msg = await msg.sign(
-      [privatekey],
-    );
-    print("publickey.dart: armor");
     return msg.armor();
   }
 }

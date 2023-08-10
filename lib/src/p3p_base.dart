@@ -43,13 +43,15 @@ class P3p {
     )..userinfoBox = await Hive.openLazyBox<UserInfo>(
         "${privkey.fingerprint}.userinfo",
       );
+    print("authed as: ${privkey.fingerprint}");
+    print("authed as: ${privkey.toPublic.fingerprint}");
     await p3p.listen();
     return p3p;
   }
 
   Future<UserInfo> getSelfInfo() async {
     final useri = UserInfo(
-      publicKey: await PublicKey.create(privateKey.toPublic.armor()),
+      publicKey: (await PublicKey.create(privateKey.toPublic.armor()))!,
       endpoint: [
         Endpoint(protocol: "local", host: "127.0.0.1:3893", extra: ""),
       ],
@@ -64,13 +66,39 @@ class P3p {
     extra ??= {};
     final evt = Event(
       type: EventType.message,
-      data: {
-        "text": text,
-      },
+      data: EventMessage(
+        text: text,
+      ).toJson(),
     );
     destination.addEvent(evt, userinfoBox);
+    final self = await getSelfInfo();
+    self.messages.add(
+      Message(
+        type: MessageType.text,
+        text: text,
+        uuid: evt.uuid,
+        incoming: false,
+      ),
+    );
+    await userinfoBox.put(self.publicKey.fingerprint, self);
+    await destination.refresh(userinfoBox);
     await destination.relayEvents(privateKey, userinfoBox);
     return null;
+  }
+
+  Future<List<UserInfo>> getUsers() async {
+    final uiList = <UserInfo>[];
+    for (var uiKey in userinfoBox.keys) {
+      final ui = await userinfoBox.get(uiKey);
+      if (ui == null) {
+        continue;
+      }
+      uiList.add(ui);
+    }
+    uiList.sort((ui, ui2) =>
+        ui.lastMessage.millisecondsSinceEpoch -
+        ui2.lastMessage.microsecondsSinceEpoch);
+    return uiList;
   }
 
   Future<void> listen() async {
@@ -83,7 +111,13 @@ class P3p {
           404,
           body: JsonEncoder.withIndent('    ').convert(
             [
-              Event(type: EventType.introduceRequest, data: {}),
+              Event(
+                type: EventType.introduceRequest,
+                data: EventIntroduceRequest(
+                  endpoint: (await getSelfInfo()).endpoint,
+                  publickey: privateKey.toPublic,
+                ).toJson(),
+              ).toJson(),
             ],
           ),
         );

@@ -1,16 +1,14 @@
-import 'package:dart_pg/dart_pg.dart';
+import 'package:dart_pg/dart_pg.dart' as pgp;
 import 'package:hive/hive.dart';
-import 'package:p3p/src/endpoint.dart';
-import 'package:p3p/src/error.dart';
-import 'package:p3p/src/userinfo.dart';
+import 'package:p3p/p3p.dart';
 
 abstract class Reachable {
   List<String> protocols = [];
 
   Future<P3pError?> reach(
-    Endpoint endpoint,
-    String message,
-    PrivateKey privatekey,
-    LazyBox<UserInfo> userinfoBox,
-  );
+      Endpoint endpoint,
+      String message,
+      pgp.PrivateKey privatekey,
+      LazyBox<UserInfo> userinfoBox,
+      PublicKey publicKey);
 }
