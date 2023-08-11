@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:dart_pg/dart_pg.dart' as pgp;
 import 'package:hive/hive.dart';
 import 'package:p3p/p3p.dart';
+import 'package:p3p/src/filestore.dart';
 import 'package:p3p/src/reachable/local.dart';
 import 'package:p3p/src/reachable/relay.dart';
 
@@ -47,6 +48,8 @@ class UserInfo {
   @HiveField(5)
   DateTime lastMessage = DateTime.fromMicrosecondsSinceEpoch(0);
 
+  FileStore get fileStore => FileStore(roomId: publicKey.fingerprint);
+
   static Future<UserInfo?> create(
     String publicKey,
     LazyBox<UserInfo> userinfoBox,
@@ -58,14 +61,17 @@ class UserInfo {
       endpoint: [
         Endpoint(protocol: "relay", host: "mrcyjanek.net:3847", extra: ""),
       ],
-      name: "unknown [relay]",
+      name: "unknown [relayed]",
     );
     await userinfoBox.put(ui.publicKey.fingerprint, ui);
     return ui;
   }
 
-  Future<void> relayEvents(pgp.PrivateKey privatekey,
-      LazyBox<UserInfo> userinfoBox, LazyBox<Message> messageBox) async {
+  Future<void> relayEvents(
+      pgp.PrivateKey privatekey,
+      LazyBox<UserInfo> userinfoBox,
+      LazyBox<Message> messageBox,
+      LazyBox<FileStoreElement> filestoreelementBox) async {
     if (events.isEmpty) {
       print("no events to relay");
       return;
@@ -79,12 +85,12 @@ class UserInfo {
       P3pError? resp;
       switch (endp.protocol) {
         case "local" || "locals":
-          resp = await ReachableLocal().reach(
-              endp, body, privatekey, userinfoBox, messageBox, publicKey);
+          resp = await ReachableLocal().reach(endp, body, privatekey,
+              userinfoBox, messageBox, filestoreelementBox, publicKey);
           break;
         case "relay" || "relays":
-          resp = await ReachableRelay().reach(
-              endp, body, privatekey, userinfoBox, messageBox, publicKey);
+          resp = await ReachableRelay().reach(endp, body, privatekey,
+              userinfoBox, messageBox, filestoreelementBox, publicKey);
         default:
       }
 

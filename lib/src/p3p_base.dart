@@ -5,6 +5,7 @@ import 'package:p3p/src/chat.dart';
 import 'package:p3p/src/endpoint.dart';
 import 'package:p3p/src/error.dart';
 import 'package:p3p/src/event.dart';
+import 'package:p3p/src/filestore.dart';
 import 'package:p3p/src/publickey.dart';
 import 'package:p3p/src/userinfo.dart';
 import 'package:dart_pg/dart_pg.dart' as pgp;
@@ -21,6 +22,7 @@ class P3p {
 
   late final LazyBox<UserInfo> userinfoBox;
   late final LazyBox<Message> messageBox;
+  late final LazyBox<FileStoreElement> filestoreelementBox;
 
   static Future<P3p> createSession(
     String storePath,
@@ -35,6 +37,7 @@ class P3p {
     /* 4 */ Hive.registerAdapter(EventTypeAdapter());
     /* 5 */ Hive.registerAdapter(MessageAdapter());
     /* 6 */ Hive.registerAdapter(MessageTypeAdapter());
+    /* 8 */ Hive.registerAdapter(FileStoreElementAdapter());
 
     final privkey = await (await pgp.OpenPGP.readPrivateKey(privateKey))
         .decrypt(privateKeyPassword);
@@ -45,10 +48,12 @@ class P3p {
       ..userinfoBox = await Hive.openLazyBox<UserInfo>(
         "${privkey.fingerprint}.userinfo",
       )
-      ..messageBox =
-          await Hive.openLazyBox<Message>("${privkey.fingerprint}.message");
-    print("authed as: ${privkey.fingerprint}");
-    print("authed as: ${privkey.toPublic.fingerprint}");
+      ..messageBox = await Hive.openLazyBox<Message>(
+        "${privkey.fingerprint}.message",
+      )
+      ..filestoreelementBox = await Hive.openLazyBox<FileStoreElement>(
+        "${privkey.fingerprint}.filestoreelement",
+      );
     await p3p.listen();
     return p3p;
   }
@@ -85,7 +90,8 @@ class P3p {
           roomId: destination.publicKey.fingerprint,
         ),
         messageBox);
-    await destination.relayEvents(privateKey, userinfoBox, messageBox);
+    await destination.relayEvents(
+        privateKey, userinfoBox, messageBox, filestoreelementBox);
     return null;
   }
 
@@ -108,8 +114,8 @@ class P3p {
     var router = Router();
     router.post("/", (Request request) async {
       final body = await request.readAsString();
-      final userI =
-          await Event.tryProcess(body, privateKey, userinfoBox, messageBox);
+      final userI = await Event.tryProcess(
+          body, privateKey, userinfoBox, messageBox, filestoreelementBox);
       if (userI == null) {
         return Response(
           404,

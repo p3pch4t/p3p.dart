@@ -4,6 +4,7 @@ import 'package:dart_pg/dart_pg.dart' as pgp;
 import 'package:dio/dio.dart';
 import 'package:hive/hive.dart';
 import 'package:p3p/p3p.dart';
+import 'package:p3p/src/filestore.dart';
 import 'package:p3p/src/reachable/abstract.dart';
 
 final relayDio = Dio(BaseOptions(receiveDataWhenStatusError: true));
@@ -21,6 +22,7 @@ class ReachableRelay implements Reachable {
       pgp.PrivateKey privatekey,
       LazyBox<UserInfo> userinfoBox,
       LazyBox<Message> messageBox,
+      LazyBox<FileStoreElement> filestoreelementBox,
       PublicKey publicKey) async {
     if (!protocols.contains(endpoint.protocol)) {
       return P3pError(
@@ -48,7 +50,8 @@ class ReachableRelay implements Reachable {
       print((e as DioException).response);
     }
     if (resp?.statusCode == 200) {
-      await Event.tryProcess(resp?.data, privatekey, userinfoBox, messageBox);
+      await Event.tryProcess(
+          resp?.data, privatekey, userinfoBox, messageBox, filestoreelementBox);
       return null;
     }
     return P3pError(code: -1, info: "unable to reach");

@@ -4,6 +4,7 @@ import 'package:dart_pg/dart_pg.dart' as pgp;
 import 'package:hive/hive.dart';
 import 'package:p3p/src/chat.dart';
 import 'package:p3p/src/endpoint.dart';
+import 'package:p3p/src/filestore.dart';
 import 'package:p3p/src/publickey.dart';
 import 'package:p3p/src/userinfo.dart';
 import 'package:uuid/uuid.dart';
@@ -31,6 +32,8 @@ class Event {
         EventType.introduce => "introduce",
         EventType.introduceRequest => "introduce.request",
         EventType.message => "message",
+        EventType.fileRequest => "file.request",
+        EventType.file => "file",
         EventType.unimplemented => "unimplemented",
       },
       "data": data,
@@ -45,6 +48,8 @@ class Event {
         "introduce" => EventType.introduce,
         "introduce.request" => EventType.introduceRequest,
         "message" => EventType.message,
+        "file.request" => EventType.fileRequest,
+        "file" => EventType.file,
         _ => EventType.unimplemented,
       },
       data: json["data"],
@@ -52,11 +57,11 @@ class Event {
   }
 
   static Future<UserInfo?> tryProcess(
-    String payload,
-    pgp.PrivateKey privatekey,
-    LazyBox<UserInfo> userinfoBox,
-    LazyBox<Message> messageBox,
-  ) async {
+      String payload,
+      pgp.PrivateKey privatekey,
+      LazyBox<UserInfo> userinfoBox,
+      LazyBox<Message> messageBox,
+      LazyBox<FileStoreElement> filestoreelementBox) async {
     /// NOTE: we *do* want to process plaintext event: that is introduce
     /// We will use it send and optain publickey for encryption.
     /// NOTE 2: plaintext here may mean http*s* - but not PGP encrypted.
@@ -71,7 +76,8 @@ class Event {
           final p = await parsePayload(payload, userinfoBox, privatekey);
           ui = p.userInfo;
           for (var evt in p.events) {
-            evt.process(ui!, userinfoBox, messageBox, privatekey);
+            evt.process(
+                ui!, userinfoBox, messageBox, filestoreelementBox, privatekey);
           }
           continue;
         }
@@ -80,7 +86,8 @@ class Event {
           if (evtp.type == EventType.introduce) {
             evtp.processIntroduce(userinfoBox);
           } else if (evtp.type == EventType.introduceRequest) {
-            evtp.processIntroduceRequest(userinfoBox, privatekey);
+            evtp.processIntroduceRequest(
+                userinfoBox, filestoreelementBox, privatekey);
           } else {}
           continue;
         }
@@ -92,7 +99,8 @@ class Event {
       final parsed = await Event.parsePayload(payload, userinfoBox, privatekey);
       ui = parsed.userInfo;
       for (var element in parsed.events) {
-        await element.process(ui!, userinfoBox, messageBox, privatekey);
+        await element.process(
+            ui!, userinfoBox, messageBox, filestoreelementBox, privatekey);
       }
     }
 
@@ -142,17 +150,24 @@ class Event {
     return ret;
   }
 
-  Future<bool> process(UserInfo userInfo, LazyBox<UserInfo> userinfoBox,
-      LazyBox<Message> messageBox, pgp.PrivateKey privateKey) async {
+  Future<bool> process(
+      UserInfo userInfo,
+      LazyBox<UserInfo> userinfoBox,
+      LazyBox<Message> messageBox,
+      LazyBox<FileStoreElement> filestoreelementBox,
+      pgp.PrivateKey privateKey) async {
     print("processing ${toJson().toString()}");
     switch (type) {
       case EventType.introduce:
         return await processIntroduce(userinfoBox);
       case EventType.introduceRequest:
-        return await processIntroduceRequest(userinfoBox, privateKey);
+        return await processIntroduceRequest(
+            userinfoBox, filestoreelementBox, privateKey);
       case EventType.message:
         print("event: message");
         return await processMessage(userinfoBox, messageBox, userInfo);
+      case EventType.fileRequest:
+      case EventType.file:
       case EventType.unimplemented:
         print("event: unimplemented");
         return false;
@@ -179,11 +194,16 @@ class Event {
 
   Future<bool> processIntroduceRequest(
     LazyBox<UserInfo> userinfoBox,
+    LazyBox<FileStoreElement> filestoreelementBox,
     pgp.PrivateKey privateKey,
   ) async {
     print("event: introduce.request");
     final publicKey = await pgp.OpenPGP.readPublicKey(data['publickey']);
     UserInfo? userInfo = await userinfoBox.get(publicKey.fingerprint);
+    final selfUser = await userinfoBox.get(privateKey.fingerprint);
+    if (selfUser == null) {
+      print("NO SELFUSER - fp ${privateKey.fingerprint}");
+    }
     userInfo ??= UserInfo(
       publicKey: (await PublicKey.create(data['publickey']))!,
       endpoint: [],
@@ -194,7 +214,11 @@ class Event {
     userInfo.events.add(
       Event(
         type: EventType.introduce,
-        data: {"publickey": privateKey.toPublic.armor()},
+        data: EventIntroduce(
+          endpoint: selfUser!.endpoint,
+          fselm: await userInfo.fileStore.getFileStore(filestoreelementBox),
+          publickey: privateKey.toPublic,
+        ).toJson(),
       ),
     );
     await userinfoBox.put(userInfo.publicKey.fingerprint, userInfo);
@@ -231,6 +255,12 @@ enum EventType {
 
   @HiveField(3)
   message,
+
+  @HiveField(4)
+  fileRequest,
+
+  @HiveField(5)
+  file,
 }
 
 class ParsedPayload {
@@ -240,6 +270,26 @@ class ParsedPayload {
   });
   UserInfo? userInfo;
   List<Event> events;
+}
+
+class EventIntroduce {
+  EventIntroduce({
+    required this.publickey,
+    required this.endpoint,
+    required this.fselm,
+  });
+
+  final pgp.PublicKey publickey;
+  final List<Endpoint> endpoint;
+  final List<FileStoreElement> fselm;
+
+  Map<String, dynamic> toJson() {
+    return {
+      "publickey": publickey.armor(),
+      "endpoint": endpoint.toString(), // tostring
+      "filestore": fselm,
+    };
+  }
 }
 
 class EventIntroduceRequest {
