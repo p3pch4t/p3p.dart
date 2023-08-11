@@ -34,6 +34,7 @@ class Event {
         EventType.unimplemented => "unimplemented",
       },
       "data": data,
+      "uuid": uuid,
     };
   }
 
@@ -47,13 +48,14 @@ class Event {
         _ => EventType.unimplemented,
       },
       data: json["data"],
-    );
+    )..uuid = json["uuid"];
   }
 
   static Future<UserInfo?> tryProcess(
     String payload,
     pgp.PrivateKey privatekey,
     LazyBox<UserInfo> userinfoBox,
+    LazyBox<Message> messageBox,
   ) async {
     /// NOTE: we *do* want to process plaintext event: that is introduce
     /// We will use it send and optain publickey for encryption.
@@ -69,7 +71,7 @@ class Event {
           final p = await parsePayload(payload, userinfoBox, privatekey);
           ui = p.userInfo;
           for (var evt in p.events) {
-            evt.process(ui!, userinfoBox, privatekey);
+            evt.process(ui!, userinfoBox, messageBox, privatekey);
           }
           continue;
         }
@@ -90,7 +92,7 @@ class Event {
       final parsed = await Event.parsePayload(payload, userinfoBox, privatekey);
       ui = parsed.userInfo;
       for (var element in parsed.events) {
-        await element.process(ui!, userinfoBox, privatekey);
+        await element.process(ui!, userinfoBox, messageBox, privatekey);
       }
     }
 
@@ -141,7 +143,7 @@ class Event {
   }
 
   Future<bool> process(UserInfo userInfo, LazyBox<UserInfo> userinfoBox,
-      pgp.PrivateKey privateKey) async {
+      LazyBox<Message> messageBox, pgp.PrivateKey privateKey) async {
     print("processing ${toJson().toString()}");
     switch (type) {
       case EventType.introduce:
@@ -150,7 +152,7 @@ class Event {
         return await processIntroduceRequest(userinfoBox, privateKey);
       case EventType.message:
         print("event: message");
-        return await processMessage(userinfoBox, userInfo);
+        return await processMessage(userinfoBox, messageBox, userInfo);
       case EventType.unimplemented:
         print("event: unimplemented");
         return false;
@@ -164,9 +166,6 @@ class Event {
     assert(data["username"] is List<String>);
     final publicKey = await pgp.OpenPGP.readPublicKey(data['publickey']);
     UserInfo? useri = await userinfoBox.get(publicKey.fingerprint);
-    if (useri != null) {
-      useri.refresh(userinfoBox);
-    }
     useri ??= UserInfo(
         publicKey: (await PublicKey.create(data['publickey']))!,
         endpoint: [],
@@ -202,19 +201,18 @@ class Event {
     return true;
   }
 
-  Future<bool> processMessage(
-      LazyBox<UserInfo> userinfoBox, UserInfo userInfo) async {
+  Future<bool> processMessage(LazyBox<UserInfo> userinfoBox,
+      LazyBox<Message> messageBox, UserInfo userInfo) async {
     print("event: processMessage");
-    userInfo.messages.add(
-      Message(
-        type: MessageType.text,
-        text: data["text"].toString(),
-        uuid: uuid,
-        incoming: true,
-      ),
-    );
-    await userinfoBox.put(userInfo.publicKey.fingerprint, userInfo);
-    print("totalMessages:${userInfo.messages.length}");
+    userInfo.addMessage(
+        Message(
+            type: MessageType.text,
+            text: data["text"].toString(),
+            uuid: uuid,
+            incoming: true,
+            roomId: userInfo.publicKey.fingerprint),
+        messageBox);
+    print("totalMessages:${(await userInfo.getMessages(messageBox)).length}");
     print("fingerprint: ${userInfo.publicKey.fingerprint}");
     return true;
   }

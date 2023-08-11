@@ -9,6 +9,7 @@ void main() async {
   final testPk = await OpenPGP.generateKey(
     [userID],
     privateKeyPassword,
+    rsaKeySize: RSAKeySize.s2048,
   );
   final p3p = await P3p.createSession(
     '/tmp/p3p_test_store',
@@ -24,6 +25,18 @@ void main() async {
       final err = await p3p.sendMessage(userInfo, "test", null);
       if (err != null) {
         fail(err.toString());
+      }
+    });
+    test('messages', () async {
+      final userInfo = await p3p.getSelfInfo();
+      final msgs = await userInfo.getMessages(p3p.messageBox);
+      print(msgs.length);
+      for (var element in msgs) {
+        print('msg: ${element.text}');
+      }
+      for (var k in p3p.messageBox.keys) {
+        final msg = await p3p.messageBox.get(k);
+        print(msg?.debug());
       }
     });
   });

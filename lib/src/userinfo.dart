@@ -27,22 +27,25 @@ class UserInfo {
   @HiveField(3)
   String name;
 
-  @HiveField(4)
-  List<Message> messages = [];
+  // @HiveField(4)
+  // List<Message> messages = [];
+  Future<List<Message>> getMessages(LazyBox<Message> messagesBox) async {
+    final ret = <Message>[];
+    for (var key in messagesBox.keys) {
+      final msg = await messagesBox.get(key);
+      if (msg == null) continue;
+      if (msg.roomId != publicKey.fingerprint) continue;
+      ret.add(msg);
+    }
+    return ret;
+  }
+
+  Future<void> addMessage(Message message, LazyBox<Message> messageBox) async {
+    await messageBox.put("${message.roomId}.${message.uuid}", message);
+  }
 
   @HiveField(5)
   DateTime lastMessage = DateTime.fromMicrosecondsSinceEpoch(0);
-
-  Future<void> refresh(LazyBox<UserInfo> userinfoBox) async {
-    final ui = (await userinfoBox.get(publicKey.fingerprint));
-    if (ui == null) return;
-    publicKey = ui.publicKey;
-    endpoint = ui.endpoint;
-    events = ui.events;
-    name = ui.name;
-    messages = ui.messages;
-    lastMessage = ui.lastMessage;
-  }
 
   static Future<UserInfo?> create(
     String publicKey,
@@ -61,8 +64,8 @@ class UserInfo {
     return ui;
   }
 
-  Future<void> relayEvents(
-      pgp.PrivateKey privatekey, LazyBox<UserInfo> userinfoBox) async {
+  Future<void> relayEvents(pgp.PrivateKey privatekey,
+      LazyBox<UserInfo> userinfoBox, LazyBox<Message> messageBox) async {
     if (events.isEmpty) {
       print("no events to relay");
       return;
@@ -76,12 +79,12 @@ class UserInfo {
       P3pError? resp;
       switch (endp.protocol) {
         case "local" || "locals":
-          resp = await ReachableLocal()
-              .reach(endp, body, privatekey, userinfoBox, publicKey);
+          resp = await ReachableLocal().reach(
+              endp, body, privatekey, userinfoBox, messageBox, publicKey);
           break;
         case "relay" || "relays":
-          resp = await ReachableRelay()
-              .reach(endp, body, privatekey, userinfoBox, publicKey);
+          resp = await ReachableRelay().reach(
+              endp, body, privatekey, userinfoBox, messageBox, publicKey);
         default:
       }
 

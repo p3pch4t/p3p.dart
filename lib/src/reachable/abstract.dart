@@ -10,5 +10,6 @@ abstract class Reachable {
       String message,
       pgp.PrivateKey privatekey,
       LazyBox<UserInfo> userinfoBox,
+      LazyBox<Message> messageBox,
       PublicKey publicKey);
 }

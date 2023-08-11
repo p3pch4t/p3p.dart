@@ -20,6 +20,7 @@ class ReachableRelay implements Reachable {
       String message,
       pgp.PrivateKey privatekey,
       LazyBox<UserInfo> userinfoBox,
+      LazyBox<Message> messageBox,
       PublicKey publicKey) async {
     if (!protocols.contains(endpoint.protocol)) {
       return P3pError(
@@ -47,7 +48,7 @@ class ReachableRelay implements Reachable {
       print((e as DioException).response);
     }
     if (resp?.statusCode == 200) {
-      await Event.tryProcess(resp?.data, privatekey, userinfoBox);
+      await Event.tryProcess(resp?.data, privatekey, userinfoBox, messageBox);
       return null;
     }
     return P3pError(code: -1, info: "unable to reach");

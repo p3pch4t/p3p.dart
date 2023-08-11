@@ -20,6 +20,7 @@ class P3p {
   final pgp.PrivateKey privateKey;
 
   late final LazyBox<UserInfo> userinfoBox;
+  late final LazyBox<Message> messageBox;
 
   static Future<P3p> createSession(
     String storePath,
@@ -40,9 +41,12 @@ class P3p {
 
     final p3p = P3p(
       privateKey: privkey,
-    )..userinfoBox = await Hive.openLazyBox<UserInfo>(
+    )
+      ..userinfoBox = await Hive.openLazyBox<UserInfo>(
         "${privkey.fingerprint}.userinfo",
-      );
+      )
+      ..messageBox =
+          await Hive.openLazyBox<Message>("${privkey.fingerprint}.message");
     print("authed as: ${privkey.fingerprint}");
     print("authed as: ${privkey.toPublic.fingerprint}");
     await p3p.listen();
@@ -72,17 +76,16 @@ class P3p {
     );
     destination.addEvent(evt, userinfoBox);
     final self = await getSelfInfo();
-    self.messages.add(
-      Message(
-        type: MessageType.text,
-        text: text,
-        uuid: evt.uuid,
-        incoming: false,
-      ),
-    );
-    await userinfoBox.put(self.publicKey.fingerprint, self);
-    await destination.refresh(userinfoBox);
-    await destination.relayEvents(privateKey, userinfoBox);
+    self.addMessage(
+        Message(
+          type: MessageType.text,
+          text: text,
+          uuid: evt.uuid,
+          incoming: false,
+          roomId: destination.publicKey.fingerprint,
+        ),
+        messageBox);
+    await destination.relayEvents(privateKey, userinfoBox, messageBox);
     return null;
   }
 
@@ -105,7 +108,8 @@ class P3p {
     var router = Router();
     router.post("/", (Request request) async {
       final body = await request.readAsString();
-      final userI = await Event.tryProcess(body, privateKey, userinfoBox);
+      final userI =
+          await Event.tryProcess(body, privateKey, userinfoBox, messageBox);
       if (userI == null) {
         return Response(
           404,
