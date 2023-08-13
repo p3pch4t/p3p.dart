@@ -1,7 +1,6 @@
 import 'package:dart_pg/dart_pg.dart' as pgp;
 import 'package:hive/hive.dart';
 import 'package:p3p/p3p.dart';
-import 'package:p3p/src/filestore.dart';
 
 abstract class Reachable {
   List<String> protocols = [];
@@ -13,5 +12,6 @@ abstract class Reachable {
       LazyBox<UserInfo> userinfoBox,
       LazyBox<Message> messageBox,
       LazyBox<FileStoreElement> filestoreelementBox,
-      PublicKey publicKey);
+      PublicKey publicKey,
+      String fileStorePath);
 }

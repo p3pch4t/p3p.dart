@@ -22,7 +22,7 @@ void main() async {
     test('getSelfInfo', () => p3p.getSelfInfo());
     test('sendMessage', () async {
       final userInfo = await p3p.getSelfInfo();
-      final err = await p3p.sendMessage(userInfo, "test", null);
+      final err = await p3p.sendMessage(userInfo, "test");
       if (err != null) {
         fail(err.toString());
       }

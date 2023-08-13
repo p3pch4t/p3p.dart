@@ -10,5 +10,6 @@ export 'src/error.dart';
 export 'src/event.dart';
 export 'src/publickey.dart';
 export 'src/userinfo.dart';
+export 'src/filestore.dart';
 
 // TODO: Export any libraries intended for clients of this package.

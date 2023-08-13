@@ -30,10 +30,17 @@ class Message {
   @HiveField(4)
   String roomId;
 
+  @HiveField(5)
+  DateTime dateReceived = DateTime.now();
+
   static Message? fromEvent(Event evt, bool incoming, String roomId) {
-    if (evt.type == EventType.message) return null;
+    if (evt.type != EventType.message) return null;
     return Message(
-      type: MessageType.text,
+      type: switch (evt.data["type"] as String?) {
+        null || "text" => MessageType.text,
+        "service" => MessageType.service,
+        _ => MessageType.unimplemented,
+      },
       text: evt.data["text"],
       uuid: evt.uuid,
       incoming: incoming,
@@ -48,6 +55,7 @@ class Message {
       "uuid": uuid,
       "incoming": incoming,
       "roomId": roomId,
+      "dateReceived": dateReceived.toString(),
     });
   }
 }
@@ -59,4 +67,10 @@ enum MessageType {
 
   @HiveField(1)
   text,
+
+  @HiveField(2)
+  service,
+
+  @HiveField(3)
+  hidden,
 }
