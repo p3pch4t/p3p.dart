@@ -1,9 +1,7 @@
 import 'package:dart_pg/dart_pg.dart' as pgp;
-import 'package:hive/hive.dart';
+import 'package:objectbox/objectbox.dart';
 
-part 'publickey.g.dart';
-
-@HiveType(typeId: 1)
+@Entity()
 class PublicKey {
   static Future<PublicKey?> create(String armoredPublicKey) async {
     try {
@@ -24,10 +22,12 @@ class PublicKey {
     required this.publickey,
   });
 
-  @HiveField(1)
+  @Id()
+  int id = 0;
+
+  @Unique(onConflict: ConflictStrategy.replace)
   String fingerprint;
 
-  @HiveField(2)
   String publickey;
 
   Future<String> encrypt(String data, pgp.PrivateKey privatekey) async {

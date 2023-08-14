@@ -1,89 +1,86 @@
 import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:hive/hive.dart';
 import 'package:crypto/crypto.dart' as crypto;
-import 'package:p3p/src/userinfo.dart';
+import 'package:p3p/p3p.dart';
 import 'package:uuid/uuid.dart';
 
-import 'package:path/path.dart' as p;
+// ignore: unnecessary_import
+import 'package:objectbox/objectbox.dart';
 
-part 'filestore.g.dart';
+import 'package:path/path.dart' as p;
 
 /// Filestore - p3p filesystem is defined here
 /// Yes, I'm fully aware that you don't design filesystem
 /// that high in the abstraction world but hey.. it works.
 
-@HiveType(typeId: 7)
+@Entity()
 class FileStoreElement {
   FileStoreElement({
-    required this.rawPath,
+    required this.dbPath,
     required this.sha512sum,
     required this.sizeBytes,
-    required this.downloadedSizeBytes,
     required this.localPath,
+    required this.roomFingerprint,
   });
 
-  @HiveField(0)
+  @Id()
+  int id = 0;
+
   String uuid = Uuid().v4();
 
-  @HiveField(1)
-  String rawPath;
+  String dbPath;
 
-  String get path => p.normalize(p.join('/', rawPath));
+  @Transient()
+  String get path => p.normalize(p.join('/', dbPath));
+  @Transient()
   set path(String nPath) {
-    rawPath = p.normalize(p.join('/', nPath));
+    dbPath = p.normalize(p.join('/', nPath));
   }
 
-  @HiveField(2)
   String sha512sum;
 
-  @HiveField(3)
   int sizeBytes;
 
-  @HiveField(4)
   String localPath;
 
-  @HiveField(5)
   bool isDeleted = false;
 
-  @HiveField(6)
-  DateTime modifyTime = DateTime.fromMicrosecondsSinceEpoch(0);
+  @Property(type: PropertyType.date)
+  DateTime modifyTime = DateTime.fromMillisecondsSinceEpoch(0);
 
-  @HiveField(7)
-  int downloadedSizeBytes;
+  int get downloadedSizeBytes => file.lengthSync();
 
-  @HiveField(8, defaultValue: false)
   bool shouldFetch = false;
 
+  @Transient()
   File get file => File(localPath);
 
-  Future<void> save(LazyBox<FileStoreElement> filestoreelementBox,
-      LazyBox<UserInfo> userinfoBox, String roomId,
-      {bool noUpdate = false}) async {
-    modifyTime = DateTime.now();
-    if (!noUpdate) {
-      final useri = await userinfoBox.get(roomId);
-      print("useri: ${useri?.publicKey.fingerprint}/$roomId");
+  @Index()
+  String roomFingerprint;
+
+  bool requestedLatestVersion = false;
+
+  Future<void> save(P3p p3p, {bool shouldIntroduce = true}) async {
+    if (shouldIntroduce) {
+      modifyTime = DateTime.now();
+      final useri = p3p.getUserInfo(roomFingerprint);
       if (useri != null) {
         useri.lastIntroduce = DateTime(2000);
-        print("lasti:${useri.lastIntroduce}");
-        await userinfoBox.put(roomId, useri);
+        useri.save(p3p);
       }
     }
-    await filestoreelementBox.put("$roomId.$uuid", this);
+    p3p.fileStoreElementBox.put(this);
   }
 
   Future<void> updateContent(
-    LazyBox<FileStoreElement> filestoreelementBox,
-    LazyBox<UserInfo> userinfoBox,
-    String roomId,
+    P3p p3p,
   ) async {
-    downloadedSizeBytes = await file.length();
     sizeBytes = downloadedSizeBytes;
+    modifyTime = DateTime.now();
     sha512sum = calcSha512Sum(await file.readAsBytes());
 
-    await save(filestoreelementBox, userinfoBox, roomId);
+    await save(p3p);
   }
 
   static String calcSha512Sum(Uint8List bytes) {
@@ -105,43 +102,32 @@ class FileStoreElement {
 
 class FileStore {
   FileStore({
-    required this.roomId,
+    required this.roomFingerprint,
   });
-  String roomId;
+  String roomFingerprint;
 
-  Future<List<FileStoreElement>> getFileStoreElement(
-    LazyBox<FileStoreElement> filestoreelementBox,
-  ) async {
-    final ret = <FileStoreElement>[];
-    for (String key in filestoreelementBox.keys) {
-      if (!key.startsWith(roomId)) continue; // not part of this filestore
-      final fee = await filestoreelementBox.get(key);
-      if (fee == null) continue;
-      ret.add(fee);
-    }
-    return ret;
+  Future<List<FileStoreElement>> getFileStoreElement(P3p p3p) async {
+    return p3p.fileStoreElementBox
+        .query(FileStoreElement_.roomFingerprint.equals(roomFingerprint))
+        .build()
+        .find();
   }
 
   Future<FileStoreElement> putFileStoreElement(
-      LazyBox<FileStoreElement> filestoreelementBox,
-      LazyBox<UserInfo> userinfoBox,
-      File? localFile,
-      String? localFileSha512sum,
-      int sizeBytes,
-      String fileInChatPath,
-      String fileStorePath,
-      {String? uuid}) async {
-    if (localFile != null && localFileSha512sum == null) {
-      print(
-        "you need to provide either or none localFile and localFileSha512sum",
-      );
-      throw Error();
-    }
+    P3p p3p, {
+    String? uuid,
+    required File? localFile,
+    required String? localFileSha512sum,
+    required int sizeBytes,
+    required String fileInChatPath,
+  }) async {
+    uuid ??= Uuid().v4();
     final sha512sum = localFileSha512sum ??
         FileStoreElement.calcSha512Sum(
           localFile?.readAsBytesSync() ?? Uint8List(0),
         );
-    final storeFile = File(p.join(fileStorePath, "$roomId-${Uuid().v4()}"));
+    final storeFile =
+        File(p.join(p3p.fileStorePath, "$roomFingerprint-${Uuid().v4()}"));
     if (!await storeFile.exists()) {
       await storeFile.create(recursive: true);
     }
@@ -152,21 +138,29 @@ class FileStore {
         throw Error();
       }
     }
-    final fselm = FileStoreElement(
-      rawPath: '/',
+
+    var fselm = p3p.fileStoreElementBox
+        .query(FileStoreElement_.uuid
+            .equals(uuid)
+            .and(FileStoreElement_.roomFingerprint.equals(roomFingerprint)))
+        .build()
+        .findFirst();
+    fselm ??= FileStoreElement(
+      dbPath: '/',
+      /* replaced lated by ..path = ... */
       sha512sum: sha512sum,
       sizeBytes: sizeBytes,
-      downloadedSizeBytes: await storeFile.length(),
       localPath: storeFile.path,
+      roomFingerprint: roomFingerprint,
     )
       ..shouldFetch = localFile == null ? false : true
-      ..path = fileInChatPath;
-    if (uuid != null) fselm.uuid = uuid;
-    await filestoreelementBox.put("$roomId.${fselm.uuid}", fselm);
-    final useri = await userinfoBox.get(roomId);
+      ..path = fileInChatPath
+      ..uuid = uuid;
+    p3p.fileStoreElementBox.put(fselm);
+    final useri = p3p.getUserInfo(roomFingerprint);
     if (useri == null) return fselm;
     useri.lastIntroduce = DateTime.fromMicrosecondsSinceEpoch(0);
-    await userinfoBox.put(useri.publicKey.fingerprint, useri);
+    useri.save(p3p);
     return fselm;
   }
 }

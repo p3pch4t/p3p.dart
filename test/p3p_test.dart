@@ -29,14 +29,10 @@ void main() async {
     });
     test('messages', () async {
       final userInfo = await p3p.getSelfInfo();
-      final msgs = await userInfo.getMessages(p3p.messageBox);
+      final msgs = await userInfo.getMessages(p3p);
       print(msgs.length);
       for (var element in msgs) {
         print('msg: ${element.text}');
-      }
-      for (var k in p3p.messageBox.keys) {
-        final msg = await p3p.messageBox.get(k);
-        print(msg?.debug());
       }
     });
   });

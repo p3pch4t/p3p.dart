@@ -26,15 +26,20 @@ void main() async {
     'passpharse',
   );
 
+  p3p.onMessageCallback.add(_messageCallback);
+
   // Print out pgp key to allow others to message us.. actually.
   print((await p3p.getSelfInfo()).publicKey.publickey);
 
   // start processing new messages
-  await p3p.messageBox.watch().forEach((msgEvt) async {
-    final msg = await p3p.messageBox.get(msgEvt.key);
-    if (msg == null) return;
-    print("Got a message: ${msg.debug()}");
-  });
+}
+
+void _messageCallback(P3p p3p, Message msg) {
+  final sender = msg.getSender(p3p);
+  p3p.sendMessage(
+    sender,
+    "I've received your message: ${msg.text}",
+  );
 }
 
 Future<void> generatePrivkey(File storedPgp) async {

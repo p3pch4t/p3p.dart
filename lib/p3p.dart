@@ -11,5 +11,6 @@ export 'src/event.dart';
 export 'src/publickey.dart';
 export 'src/userinfo.dart';
 export 'src/filestore.dart';
-
+export 'objectbox.g.dart';
+export 'package:objectbox/objectbox.dart';
 // TODO: Export any libraries intended for clients of this package.

@@ -1,149 +1,204 @@
 import 'dart:convert';
 
-import 'package:dart_pg/dart_pg.dart' as pgp;
-import 'package:hive/hive.dart';
+// ignore: unnecessary_import
+import 'package:objectbox/objectbox.dart';
 import 'package:p3p/p3p.dart';
 import 'package:p3p/src/reachable/local.dart';
 import 'package:p3p/src/reachable/relay.dart';
 
-part 'userinfo.g.dart';
-
-@HiveType(typeId: 0)
+@Entity()
 class UserInfo {
+  static UserInfo? getUserInfo(P3p p3p, String fingerprint) {
+    final pubKey = p3p.publicKeyBox
+        .query(PublicKey_.fingerprint.equals(fingerprint))
+        .build()
+        .findFirst();
+    if (pubKey == null) {
+      print("pubKey not found - returning empty");
+      return null;
+    }
+    return p3p.userInfoBox
+        .query(UserInfo_.dbPublicKey.equals(pubKey.id))
+        .build()
+        .findFirst()
+      ?..init(p3p);
+  }
+
+  Future<void> init(P3p p3p) async {}
+
   UserInfo({
-    required this.publicKey,
-    required this.endpoint,
+    required this.dbPublicKey,
   });
-  @HiveField(0)
-  PublicKey publicKey;
+  @Id()
+  int id = 0;
 
-  @HiveField(1)
-  List<Endpoint> endpoint;
+  @Index()
+  ToOne<PublicKey> dbPublicKey = ToOne();
 
-  @HiveField(2)
-  List<Event> events = [];
+  @Transient()
+  PublicKey get publicKey => dbPublicKey.target!;
+  @Transient()
+  set publicKey(PublicKey pk) => dbPublicKey.target = pk;
 
-  @HiveField(3, defaultValue: null)
+  @Transient()
+  List<Endpoint> get endpoint => dbEndpoint.toList();
+  @Transient()
+  set endpoint(List<Endpoint> endps) => dbEndpoint
+    ..clear()
+    ..addAll(endps);
+
+  ToMany<Endpoint> dbEndpoint = ToMany();
+
+  List<Event> getEvents(P3p p3p, PublicKey destination) {
+    return p3p.eventBox
+        .query(Event_.destinationPublicKey.equals(destination.id))
+        .build()
+        .find()
+        .take(4)
+        .toList();
+  }
+
   String? name;
 
-  // @HiveField(4)
-  // List<Message> messages = [];
-
-  @HiveField(5)
+  @Property(type: PropertyType.date)
   DateTime lastMessage = DateTime.fromMicrosecondsSinceEpoch(0);
 
-  @HiveField(6)
+  @Property(type: PropertyType.date)
   DateTime lastIntroduce = DateTime.fromMicrosecondsSinceEpoch(0);
 
   /// lastEvent - actually last received event
-  @HiveField(7)
+  @Property(type: PropertyType.date)
   DateTime lastEvent = DateTime.fromMicrosecondsSinceEpoch(0);
 
-  FileStore get fileStore => FileStore(roomId: publicKey.fingerprint);
+  FileStore get fileStore => FileStore(roomFingerprint: publicKey.fingerprint);
 
-  Future<List<Message>> getMessages(LazyBox<Message> messagesBox) async {
-    final ret = <Message>[];
-    for (var key in messagesBox.keys) {
-      final msg = await messagesBox.get(key);
-      if (msg == null) continue;
-      if (msg.roomId != publicKey.fingerprint) continue;
-      ret.add(msg);
-    }
+  void save(P3p p3p) {
+    p3p.userInfoBox.put(this);
+  }
+
+  Future<List<Message>> getMessages(P3p p3p) async {
+    final ret = p3p.messageBox
+        .query(Message_.roomFingerprint.equals(publicKey.fingerprint))
+        .build()
+        .find();
     ret.sort(
       (m1, m2) => m1.dateReceived.difference(m2.dateReceived).inMicroseconds,
     );
     return ret;
   }
 
-  Future<void> addMessage(Message message, LazyBox<Message> messageBox) async {
-    await messageBox.put("${message.roomId}.${message.uuid}", message);
+  Future<void> addMessage(P3p p3p, Message message) async {
+    final msg = p3p.messageBox
+        .query(Message_.uuid
+            .equals(message.uuid)
+            .and(Message_.roomFingerprint.equals(publicKey.fingerprint)))
+        .build()
+        .findFirst();
+    if (msg != null) {
+      message.id = msg.id;
+    }
+    p3p.messageBox.put(message);
+    p3p.callOnMessage(message);
   }
 
-  Future<void> relayEvents(
-    pgp.PrivateKey privatekey,
-    LazyBox<UserInfo> userinfoBox,
-    LazyBox<Message> messageBox,
-    LazyBox<FileStoreElement> filestoreelementBox,
-    String fileStorePath,
-  ) async {
-    if (events.isEmpty) {
+  Future<void> relayEvents(P3p p3p, PublicKey publicKey) async {
+    print("relayEvents");
+    if (endpoint.isEmpty) {
+      print("hot fixing endpoint by adding ReachableRelay.defaultEndpoints");
+      endpoint = ReachableRelay.defaultEndpoints;
+    }
+    final evts = getEvents(p3p, publicKey);
+
+    if (evts.isEmpty) {
+      print("ignoring because event list is empty");
       return;
     }
+    bool canRelayBulk = true;
+    if (!canRelayBulk) return;
 
-    final bodyJson = JsonEncoder.withIndent('    ').convert(events);
+    for (var evt in evts) {
+      print("evts ${evt.id}:${evt.toJson()}");
+    }
+    final bodyJson = JsonEncoder.withIndent('    ').convert(evts);
 
-    final body = await publicKey.encrypt(bodyJson, privatekey);
+    final body = await publicKey.encrypt(bodyJson, p3p.privateKey);
 
     for (var endp in endpoint) {
       P3pError? resp;
       switch (endp.protocol) {
         case "local" || "locals":
           resp = await ReachableLocal().reach(
-              endp,
-              body,
-              privatekey,
-              userinfoBox,
-              messageBox,
-              filestoreelementBox,
-              publicKey,
-              fileStorePath);
+            p3p: p3p,
+            endpoint: endp,
+            message: body,
+            publicKey: publicKey,
+          );
           break;
         case "relay" || "relays":
           resp = await ReachableRelay().reach(
-              endp,
-              body,
-              privatekey,
-              userinfoBox,
-              messageBox,
-              filestoreelementBox,
-              publicKey,
-              fileStorePath);
+            p3p: p3p,
+            endpoint: endp,
+            message: body,
+            publicKey: publicKey,
+          );
         default:
       }
 
       if (resp == null) {
-        events = [];
-        await userinfoBox.put(publicKey.fingerprint, this);
+        final toDel = <int>[];
+        for (var elm in evts) {
+          toDel.add(elm.id);
+        }
+        print("Deleted: $toDel");
+        p3p.eventBox.removeMany(toDel);
+        save(p3p);
+      } else {
+        print(resp);
       }
     }
   }
 
-  /// NOTE: If you call this function event is being set internally as
-  /// delivered, it is your problem to hand it over to the user.
+  @Deprecated('NOTE: If you call this function event is being set internally as'
+      'delivered, it is your problem to hand it over to the user.'
+      'desired location.'
+      'For this reason this is released as deprecated - to discourage'
+      'usage.')
   Future<String> relayEventsString(
-    pgp.PrivateKey privatekey,
-    LazyBox<UserInfo> userinfoBox,
+    P3p p3p,
   ) async {
-    final bodyJson = JsonEncoder.withIndent('    ').convert(events);
-
-    final body = await publicKey.encrypt(bodyJson, privatekey);
-
-    events = [];
-    await userinfoBox.put(publicKey.fingerprint, this);
+    final evts = getEvents(p3p, publicKey);
+    final bodyJson = JsonEncoder.withIndent('    ').convert(evts);
+    final body = await publicKey.encrypt(bodyJson, p3p.privateKey);
+    final toDel = <int>[];
+    for (var elm in evts) {
+      toDel.add(elm.id);
+    }
+    p3p.eventBox.removeMany(toDel);
+    save(p3p);
     return body;
   }
 
-  Future<void> addEvent(Event evt, LazyBox<UserInfo> userinfoBox) async {
-    if (evt.type == EventType.introduce) {
+  Future<void> addEvent(P3p p3p, Event evt) async {
+    if (evt.eventType == EventType.introduce) {
       lastIntroduce = DateTime.now();
     }
-    events.add(evt);
-    await userinfoBox.put(publicKey.fingerprint, this);
+    // lastEvent = DateTime.now();
+    evt.id = p3p.eventBox.put(evt);
+    save(p3p);
   }
 
   static Future<UserInfo?> create(
+    P3p p3p,
     String publicKey,
-    LazyBox<UserInfo> userinfoBox,
   ) async {
     final pubKey = await PublicKey.create(publicKey);
     if (pubKey == null) return null;
     final ui = UserInfo(
-      publicKey: pubKey,
-      endpoint: [
-        ...ReachableRelay.defaultEndpoints, // add them so we can reach user
-      ],
-    );
-    await userinfoBox.put(ui.publicKey.fingerprint, ui);
+      dbPublicKey: ToOne(target: pubKey),
+    )..endpoint = [
+        ...ReachableRelay.defaultEndpoints,
+      ];
+    ui.save(p3p);
     return ui;
   }
 }

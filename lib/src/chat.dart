@@ -1,40 +1,43 @@
-import 'dart:convert';
+import 'package:p3p/p3p.dart';
 
-import 'package:hive/hive.dart';
-import 'package:p3p/src/event.dart';
-
-part 'chat.g.dart';
-
-@HiveType(typeId: 5)
+@Entity()
 class Message {
   Message({
-    required this.type,
+    this.type = MessageType.unimplemented,
     required this.text,
     required this.uuid,
     required this.incoming,
-    required this.roomId,
+    required this.roomFingerprint,
   });
 
-  @HiveField(0)
+  @Id()
+  int id = 0;
+
+  @Transient()
   MessageType type;
 
-  @HiveField(1)
+  set dbType(int msgType) => type = MessageType.values[msgType];
+  int get dbType => type.index;
+
   String text;
 
-  @HiveField(2)
+  @Unique(onConflict: ConflictStrategy.replace)
   String uuid;
 
-  @HiveField(3)
   bool incoming;
 
-  @HiveField(4)
-  String roomId;
+  @Index()
+  String roomFingerprint;
 
-  @HiveField(5)
+  @Property(type: PropertyType.date)
   DateTime dateReceived = DateTime.now();
 
-  static Message? fromEvent(Event evt, bool incoming, String roomId) {
-    if (evt.type != EventType.message) return null;
+  UserInfo getSender(P3p p3p) {
+    return p3p.getUserInfo(roomFingerprint)!;
+  }
+
+  static Message? fromEvent(Event evt, bool incoming, String roomFingerprint) {
+    if (evt.eventType != EventType.message) return null;
     return Message(
       type: switch (evt.data["type"] as String?) {
         null || "text" => MessageType.text,
@@ -44,33 +47,14 @@ class Message {
       text: evt.data["text"],
       uuid: evt.uuid,
       incoming: incoming,
-      roomId: roomId,
+      roomFingerprint: roomFingerprint,
     );
-  }
-
-  String debug() {
-    return JsonEncoder.withIndent('    ').convert({
-      "type": type.toString(),
-      "text": text,
-      "uuid": uuid,
-      "incoming": incoming,
-      "roomId": roomId,
-      "dateReceived": dateReceived.toString(),
-    });
   }
 }
 
-@HiveType(typeId: 6)
 enum MessageType {
-  @HiveField(0)
   unimplemented,
-
-  @HiveField(1)
   text,
-
-  @HiveField(2)
   service,
-
-  @HiveField(3)
   hidden,
 }

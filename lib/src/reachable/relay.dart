@@ -2,7 +2,6 @@ import 'dart:convert';
 
 import 'package:dart_pg/dart_pg.dart' as pgp;
 import 'package:dio/dio.dart';
-import 'package:hive/hive.dart';
 import 'package:p3p/p3p.dart';
 import 'package:p3p/src/reachable/abstract.dart';
 
@@ -19,15 +18,12 @@ class ReachableRelay implements Reachable {
   List<String> protocols = ["relay", "relays"];
 
   @override
-  Future<P3pError?> reach(
-      Endpoint endpoint,
-      String message,
-      pgp.PrivateKey privatekey,
-      LazyBox<UserInfo> userinfoBox,
-      LazyBox<Message> messageBox,
-      LazyBox<FileStoreElement> filestoreelementBox,
-      PublicKey publicKey,
-      String fileStorePath) async {
+  Future<P3pError?> reach({
+    required P3p p3p,
+    required Endpoint endpoint,
+    required String message,
+    required PublicKey publicKey,
+  }) async {
     if (!protocols.contains(endpoint.protocol)) {
       return P3pError(
         code: -1,
@@ -44,7 +40,7 @@ class ReachableRelay implements Reachable {
         options: Options(headers: {
           "gpg-auth": base64.encode(
             utf8.encode(
-              await generateAuth(endpoint, privatekey),
+              await generateAuth(endpoint, p3p.privateKey),
             ),
           ),
         }),
@@ -58,8 +54,7 @@ class ReachableRelay implements Reachable {
       }
     }
     if (resp?.statusCode == 200) {
-      await Event.tryProcess(resp?.data, privatekey, userinfoBox, messageBox,
-          filestoreelementBox, fileStorePath);
+      await Event.tryProcess(p3p, resp?.data);
       return null;
     }
     return P3pError(code: -1, info: "unable to reach");

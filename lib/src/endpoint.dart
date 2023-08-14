@@ -1,15 +1,15 @@
-import 'package:hive/hive.dart';
-part 'endpoint.g.dart';
+import 'package:objectbox/objectbox.dart';
 
-@HiveType(typeId: 2)
+@Entity()
 class Endpoint {
   Endpoint({
     required this.protocol,
     required this.host,
     required this.extra,
   });
+  @Id()
+  int id = 0;
 
-  @HiveField(0)
   String protocol;
 
   /// host - do not thing of http header host,
@@ -17,21 +17,13 @@ class Endpoint {
   /// local://127.0.0.1:8783/asdfevc?qwer=asd#hashpart
   /// ------->127.0.0.1:8783/asdfevc?qwer=asd<--------
   /// This would be the host part
-  @HiveField(1)
   String host;
 
-  @HiveField(2)
   String extra;
-
-  @HiveField(3)
-  DateTime lastReached = DateTime.fromMicrosecondsSinceEpoch(0);
-
-  @HiveField(4)
+  @Property(type: PropertyType.date)
+  DateTime lastReached = DateTime.fromMillisecondsSinceEpoch(0);
   int reachTriesTotal = 0;
-
-  @HiveField(5)
   int reachTriesSuccess = 0;
-
   int get reachTriesFail => reachTriesTotal - reachTriesSuccess;
 
   @override
