@@ -114,7 +114,7 @@ class Event {
         if (ui == null) {
           tryProcess(p3p, payload);
         } else {
-          await element.process(ui, p3p);
+          element.process(ui, p3p);
         }
       }
     }
@@ -172,28 +172,32 @@ class Event {
     return ret;
   }
 
-  Future<bool> process(UserInfo userInfo, P3p p3p) async {
-    print("processing.. - ${userInfo.id} - ${userInfo.name} - $eventType");
-    // JsonEncoder.withIndent('    ')
-    //     .convert(toJson())
-    //     .split("\n")
-    //     .forEach((element) {
-    //   print(element); // I hate the fact that flutter cuts the logs.
-    // });
+  void process(UserInfo userInfo, P3p p3p) async {
+    print("processing: - ${userInfo.id} - ${userInfo.name} - $eventType");
+
+    if (await p3p.callOnEvent(this)) {
+      if (id != 0) {
+        p3p.eventBox.remove(id);
+      }
+      return;
+    }
+
     switch (eventType) {
       case EventType.introduce:
-        return await processIntroduce(p3p);
+        processIntroduce(p3p);
       case EventType.introduceRequest:
-        return await processIntroduceRequest(p3p);
+        processIntroduceRequest(p3p);
       case EventType.message:
-        return await processMessage(p3p, userInfo);
+        processMessage(p3p, userInfo);
       case EventType.fileRequest:
-        return await processFileRequest(p3p, userInfo);
+        processFileRequest(p3p, userInfo);
       case EventType.file:
-        return await processFile(p3p, userInfo);
+        processFile(p3p, userInfo);
       case EventType.unimplemented || null:
         print("event: unimplemented");
-        return false;
+    }
+    if (id != 0) {
+      p3p.eventBox.remove(id);
     }
   }
 
@@ -250,12 +254,14 @@ class Event {
         }
       }
       if (!fileExisted) {
-        await useri.fileStore.putFileStoreElement(p3p,
-            localFile: null,
-            localFileSha512sum: elm["sha512sum"],
-            sizeBytes: elm["sizeBytes"],
-            fileInChatPath: elm["path"],
-            uuid: elm["uuid"]);
+        await useri.fileStore.putFileStoreElement(
+          p3p,
+          localFile: null,
+          localFileSha512sum: elm["sha512sum"],
+          sizeBytes: elm["sizeBytes"],
+          fileInChatPath: elm["path"],
+          uuid: elm["uuid"],
+        );
       }
     }
 

@@ -73,18 +73,33 @@ class UserInfoSSMDC implements UserInfo {
   }
 
   @override
-  Future<void> addMessage(P3p p3p, Message message) {
-    // TODO: implement addMessage
-    throw UnimplementedError();
+  Future<void> addMessage(P3p p3p, Message message) async {
+    final msg = p3p.messageBox
+        .query(Message_.uuid
+            .equals(message.uuid)
+            .and(Message_.roomFingerprint.equals(publicKey.fingerprint)))
+        .build()
+        .findFirst();
+    if (msg != null) {
+      message.id = msg.id;
+    }
+    p3p.messageBox.put(message);
+    p3p.callOnMessage(message);
   }
 
   @override
   FileStore get fileStore => FileStore(roomFingerprint: publicKey.fingerprint);
 
   @override
-  Future<List<Message>> getMessages(P3p p3p) {
-    // TODO: implement getMessages
-    throw UnimplementedError();
+  Future<List<Message>> getMessages(P3p p3p) async {
+    final ret = p3p.messageBox
+        .query(Message_.roomFingerprint.equals(publicKey.fingerprint))
+        .build()
+        .find();
+    ret.sort(
+      (m1, m2) => m1.dateReceived.difference(m2.dateReceived).inMicroseconds,
+    );
+    return ret;
   }
 
   @override
@@ -95,14 +110,19 @@ class UserInfoSSMDC implements UserInfo {
   }
 
   @override
+  @Deprecated("relayEventsString: doesn't work in SSMDC implementation, due "
+      "to the nature of the requests and the protocol, we are simply returning "
+      "an empty string to not break the compatibility. But refrain from using "
+      "it in future. A better approach needs to be put in place to deliver "
+      "events in a bi-directional way.")
   Future<String> relayEventsString(P3p p3p) async {
-    print("relayEventsString: not implemented, and probable never will be.");
+    print("[ssmdc] relayEventsString: not implemented");
     return "";
   }
 
   @override
   void save(P3p p3p) {
-    // TODO: implement save
+    p3p.userInfoSSMDCBox.put(this);
   }
 
   @override

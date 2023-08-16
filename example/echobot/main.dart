@@ -34,12 +34,8 @@ void main() async {
   // start processing new messages
 }
 
-void _messageCallback(P3p p3p, Message msg) {
-  final sender = msg.getSender(p3p);
-  p3p.sendMessage(
-    sender,
-    "I've received your message: ${msg.text}",
-  );
+void _messageCallback(P3p p3p, Message msg, UserInfo user) {
+  p3p.sendMessage(user, "I've received your message: ${msg.text}");
 }
 
 Future<void> generatePrivkey(File storedPgp) async {

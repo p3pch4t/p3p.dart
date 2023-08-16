@@ -54,7 +54,7 @@ class UserInfo {
         .query(Event_.destinationPublicKey.equals(destination.id))
         .build()
         .find()
-        .take(4)
+        .take(8)
         .toList();
   }
 
@@ -73,7 +73,7 @@ class UserInfo {
   FileStore get fileStore => FileStore(roomFingerprint: publicKey.fingerprint);
 
   void save(P3p p3p) {
-    p3p.userInfoBox.put(this);
+    id = p3p.userInfoBox.put(this);
   }
 
   Future<List<Message>> getMessages(P3p p3p) async {
@@ -102,22 +102,22 @@ class UserInfo {
   }
 
   Future<void> relayEvents(P3p p3p, PublicKey publicKey) async {
-    print("relayEvents");
+    // print("relayEvents");
     if (endpoint.isEmpty) {
-      print("hot fixing endpoint by adding ReachableRelay.defaultEndpoints");
+      print("fixing endpoint by adding ReachableRelay.defaultEndpoints");
       endpoint = ReachableRelay.defaultEndpoints;
     }
     final evts = getEvents(p3p, publicKey);
 
     if (evts.isEmpty) {
-      print("ignoring because event list is empty");
+      // print("ignoring because event list is empty");
       return;
     }
-    bool canRelayBulk = true;
-    if (!canRelayBulk) return;
+    // bool canRelayBulk = true;
+    // if (!canRelayBulk) return;
 
     for (var evt in evts) {
-      print("evts ${evt.id}:${evt.toJson()}");
+      // print("evts ${evt.id}:${evt.toJson()}");
     }
     final bodyJson = JsonEncoder.withIndent('    ').convert(evts);
 
@@ -158,11 +158,12 @@ class UserInfo {
     }
   }
 
-  @Deprecated('NOTE: If you call this function event is being set internally as'
-      'delivered, it is your problem to hand it over to the user.'
-      'desired location.'
-      'For this reason this is released as deprecated - to discourage'
-      'usage.')
+  @Deprecated(
+      'NOTE: If you call this function event is being set internally as '
+      'delivered, it is your problem to hand it over to the user. '
+      'desired location. \n'
+      'For this reason this is released as deprecated - to discourage '
+      'usage. ')
   Future<String> relayEventsString(
     P3p p3p,
   ) async {

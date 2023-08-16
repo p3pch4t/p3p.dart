@@ -1,22 +1,23 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:p3p/objectbox.g.dart';
+import 'package:p3p/src/background.dart';
 import 'package:p3p/src/chat.dart';
 import 'package:p3p/src/endpoint.dart';
 import 'package:p3p/src/error.dart';
 import 'package:p3p/src/event.dart';
 import 'package:p3p/src/filestore.dart';
 import 'package:p3p/src/publickey.dart';
+import 'package:p3p/src/reachable/local.dart';
 import 'package:p3p/src/reachable/relay.dart';
 import 'package:p3p/src/userinfo.dart';
 import 'package:dart_pg/dart_pg.dart' as pgp;
 import 'package:p3p/src/userinfossmdc.dart';
-import 'package:shelf/shelf.dart';
 import 'package:shelf/shelf_io.dart' as io;
-import 'package:shelf_router/shelf_router.dart';
 import 'package:path/path.dart' as p;
+
+bool storeIsOpen = false;
 
 class P3p {
   P3p({
@@ -43,21 +44,28 @@ class P3p {
     String privateKeyPassword,
   ) async {
     print("p3p: using $storePath");
+    final dbPath = Directory(p.join(storePath, 'dbv2'));
+    if (!await dbPath.exists()) await dbPath.create(recursive: true);
 
     final privkey = await (await pgp.OpenPGP.readPrivateKey(privateKey))
         .decrypt(privateKeyPassword);
-
-    final dbPath = Directory(p.join(storePath, 'dbv2'));
-    if (!await dbPath.exists()) await dbPath.create(recursive: true);
+    if (storeIsOpen == false) {
+      storeIsOpen = Store.isOpen(dbPath.absolute.path);
+    }
+    final newStore = storeIsOpen
+        ? Store.attach(getObjectBoxModel(), dbPath.absolute.path)
+        : openStore(
+            directory: dbPath.absolute.path,
+          );
     final p3p = P3p(
       privateKey: privkey,
       fileStorePath: p.join(storePath, 'files'),
-      store: openStore(
-        directory: dbPath.absolute.path,
-      ),
+      store: newStore,
     );
-    await p3p.listen();
-    p3p.scheduleTasks();
+    if (!storeIsOpen) {
+      await p3p.listen();
+      p3p._scheduleTasks();
+    }
     return p3p;
   }
 
@@ -115,34 +123,12 @@ class P3p {
   }
 
   Future<void> listen() async {
-    var router = Router();
-    router.post("/", (Request request) async {
-      final body = await request.readAsString();
-      final userI = await Event.tryProcess(this, body);
-      if (userI == null) {
-        return Response(
-          404,
-          body: JsonEncoder.withIndent('    ').convert(
-            [
-              (Event(
-                eventType: EventType.introduceRequest,
-                destinationPublicKey: ToOne(),
-              )..data = EventIntroduceRequest(
-                      endpoint: (await getSelfInfo()).endpoint,
-                      publickey: privateKey.toPublic,
-                    ).toJson())
-                  .toJson(),
-            ],
-          ),
-        );
-      }
-      return Response(
-        200,
-        body: await userI.relayEventsString(this),
-      );
-    });
     try {
-      final server = await io.serve(router, '0.0.0.0', 3893);
+      final server = await io.serve(
+        ReachableLocal.getListenRouter(this),
+        '0.0.0.0',
+        3893,
+      );
 
       print('${server.address.address}:${server.port}');
     } catch (e) {
@@ -151,91 +137,61 @@ class P3p {
   }
 
   bool isScheduleTasksCalled = false;
-  void scheduleTasks() async {
+  void _scheduleTasks() async {
     if (isScheduleTasksCalled) {
       print("scheduleTasks called more than once. this is unacceptable");
       return;
     }
-    isScheduleTasksCalled = true;
-    Timer.periodic(
-      Duration(seconds: 5),
-      (Timer t) async {
-        UserInfo si = await pingRelay();
-        si.save(this);
-        si.relayEvents(this, si.publicKey);
-        await processTasks(si);
-      },
-    );
+    scheduleTasks(this);
   }
 
-  Future<void> processTasks(UserInfo si) async {
-    for (UserInfo ui in userInfoBox.getAll()) {
-      print("schedTask: ${ui.id} - ${si.id}");
-      if (ui.id == si.id) continue;
-      // begin file request
-      final fs = await ui.fileStore.getFileStoreElement(this);
-      for (var felm in fs) {
-        if (felm.isDeleted == false &&
-            await felm.file.length() != felm.sizeBytes &&
-            felm.shouldFetch == true &&
-            felm.requestedLatestVersion == false) {
-          felm.requestedLatestVersion = true;
-          await felm.save(this);
-          ui.addEvent(
-            this,
-            Event(
-              eventType: EventType.fileRequest,
-              destinationPublicKey: ToOne(targetId: ui.publicKey.id),
-            )..data = EventFileRequest(
-                uuid: felm.uuid,
-              ).toJson(),
-          );
-          ui.save(this);
-        }
-      }
-      // end file request
-      final diff = DateTime.now().difference(ui.lastIntroduce).inMinutes;
-      print('p3p: ${ui.publicKey.fingerprint} : scheduleTasks diff = $diff');
-      if (diff > 60) {
-        ui.addEvent(
-          this,
-          Event(
-            eventType: EventType.introduce,
-            destinationPublicKey: ToOne(target: ui.publicKey),
-          )..data = EventIntroduce(
-              endpoint: si.endpoint,
-              fselm: await ui.fileStore.getFileStoreElement(this),
-              publickey: privateKey.toPublic,
-              username: si.name ?? "unknown name [${DateTime.now()}]",
-            ).toJson(),
-        );
-        ui.lastIntroduce = DateTime.now();
-      } else {
-        ui.relayEvents(this, ui.publicKey);
-      }
-      ui.save(this);
-    }
-  }
-
-  Future<UserInfo> pingRelay() async {
-    final si = await getSelfInfo();
-    if (DateTime.now().difference(si.lastEvent).inSeconds < 15) {
-      si.addEvent(
-        this,
-        Event(
-          eventType: EventType.unimplemented,
-          destinationPublicKey: ToOne(targetId: si.publicKey.id),
-        ),
-      );
-    }
-    return si;
-  }
-
+  List<void Function(P3p p3p, Message msg, UserInfo user)> onMessageCallback =
+      [];
   void callOnMessage(Message msg) {
-    for (var fn in onMessageCallback) {
-      fn(this, msg);
+    final ui = getUserInfo(msg.roomFingerprint);
+    if (ui == null) {
+      print('callOnMessage: warn: user with fingerprint ${msg.roomFingerprint} '
+          'doesn\'t exist. I\'ll not call any callbacks.');
+      return;
+    }
+    for (final fn in onMessageCallback) {
+      fn(this, msg, ui);
     }
   }
 
-  List<Function(P3p p3p, Message msg)> onMessageCallback = [];
+  /// true - event will be deleted afterwards, while being marked
+  /// as executed
+  /// false - continue normal exacution
+  /// in a situation where we have many callbacks present every
+  /// sigle one will be called, no matter the boolean result of
+  /// previous one.
+  /// This function **is** blocking, entire loop will not continue
+  /// execution untill you resolve all Futures
+  /// However if new event arrives it will execute normally.
+  /// Avoid long blocking of events to not render your peer
+  /// unresponsive or to not have out of sync events in database.
+  List<Future<bool> Function(P3p p3p, Event evt)> onEventCallback = [];
+  Future<bool> callOnEvent(Event evt) async {
+    bool toRet = false;
+    for (final fn in onEventCallback) {
+      if (await fn(this, evt)) toRet = true;
+    }
+    return toRet;
+  }
+
+  /// onFileStoreElementCallback functions are being called once a
+  /// FileStoreElement().save() function is called,
+  /// that is
+  ///  - when user edits the file
+  ///  - when file is updated by event
+  ///  - at some other points too
+  /// If you want to block file edit or intercept it you should be
+  /// using onEventCallback (in most cases)
+  List<void Function(P3p p3p, FileStore fs, FileStoreElement fselm)>
+      onFileStoreElementCallback = [];
+  void callOnFileStoreElement(FileStore fs, FileStoreElement fselm) {
+    for (final fn in onFileStoreElementCallback) {
+      fn.call(this, fs, fselm);
+    }
+  }
 }

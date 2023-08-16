@@ -70,7 +70,15 @@ class FileStoreElement {
         useri.save(p3p);
       }
     }
+    if (p.basename(path).endsWith('xdc') ||
+        p.basename(path).endsWith('.jsonp')) {
+      shouldFetch = true;
+    }
     p3p.fileStoreElementBox.put(this);
+    p3p.callOnFileStoreElement(
+      FileStore(roomFingerprint: roomFingerprint),
+      this,
+    );
   }
 
   Future<void> updateContent(
@@ -108,7 +116,9 @@ class FileStore {
 
   Future<List<FileStoreElement>> getFileStoreElement(P3p p3p) async {
     return p3p.fileStoreElementBox
-        .query(FileStoreElement_.roomFingerprint.equals(roomFingerprint))
+        .query(FileStoreElement_.roomFingerprint
+            .equals(roomFingerprint)
+            .and(FileStoreElement_.isDeleted.equals(false)))
         .build()
         .find();
   }
