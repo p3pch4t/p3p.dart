@@ -1,14 +1,10 @@
-import 'package:objectbox/objectbox.dart';
-
-@Entity()
 class Endpoint {
   Endpoint({
-    required this.protocol,
-    required this.host,
-    required this.extra,
+    required this.protocol, required this.host, required this.extra, this.id = -1,
+    this.reachTriesTotal = 0,
+    this.reachTriesSuccess = 0,
   });
-  @Id()
-  int id = 0;
+  int id;
 
   String protocol;
 
@@ -20,7 +16,6 @@ class Endpoint {
   String host;
 
   String extra;
-  @Property(type: PropertyType.date)
   DateTime lastReached = DateTime.fromMillisecondsSinceEpoch(0);
   int reachTriesTotal = 0;
   int reachTriesSuccess = 0;
@@ -28,8 +23,8 @@ class Endpoint {
 
   @override
   String toString() {
-    if (extra == "") return "$protocol://$host";
-    return "$protocol://$host#$extra";
+    if (extra == '') return '$protocol://$host';
+    return '$protocol://$host#$extra';
   }
 
   static Endpoint? fromString(String endpoint) {
@@ -46,7 +41,7 @@ class Endpoint {
   static List<Endpoint> fromStringList(List<String> endpointList) {
     final list = <Endpoint>[];
 
-    for (var endpoint in endpointList) {
+    for (final endpoint in endpointList) {
       final parsedEndpoint = Endpoint.fromString(endpoint);
       if (parsedEndpoint == null) {
         continue;

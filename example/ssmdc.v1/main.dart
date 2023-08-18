@@ -1,10 +1,11 @@
 import 'dart:io';
 import 'package:dart_pg/dart_pg.dart' as pgp;
 import 'package:p3p/p3p.dart';
+import 'package:p3p/src/database/drift.dart' as db;
 import 'package:path/path.dart' as p;
 
 final fileStorePath = p.join(
-  Platform.environment["HOME"] as String,
+  Platform.environment['HOME'] as String,
   '.config/p3p-bots/example_bot',
 );
 
@@ -16,7 +17,7 @@ void main() async {
   if (!await storedPgp.exists()) {
     await storedPgp.create(recursive: true);
     await generatePrivkey(storedPgp);
-    print("Privkey generated and stored in ${storedPgp.path}");
+    print('Privkey generated and stored in ${storedPgp.path}');
     exit(0);
   }
   // create client session
@@ -24,6 +25,9 @@ void main() async {
     fileStorePath,
     await storedPgp.readAsString(),
     'passpharse',
+    db.DatabaseImplDrift(
+      dbFolder: p.join(fileStorePath, 'db-drift'),
+    ),
   );
 
   p3p.onMessageCallback.add(_messageCallback);
@@ -40,6 +44,6 @@ void _messageCallback(P3p p3p, Message msg, UserInfo ui) {
 
 Future<void> generatePrivkey(File storedPgp) async {
   final encPgp = await pgp.OpenPGP.generateKey(
-      ['ssmdc.v1 <no-reply@mrcyjanek.net>'], 'passpharse');
+      ['ssmdc.v1 <no-reply@mrcyjanek.net>'], 'passpharse',);
   await storedPgp.writeAsString(encPgp.armor());
 }

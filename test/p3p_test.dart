@@ -1,8 +1,9 @@
 import 'package:dart_pg/dart_pg.dart';
 import 'package:p3p/p3p.dart';
+import 'package:p3p/src/database/drift.dart' as db;
 import 'package:test/test.dart';
 
-const privateKeyPassword = "test";
+const privateKeyPassword = 'test';
 
 void main() async {
   final userID = ['testUser01', '<test@test.test>'].join(' ');
@@ -12,17 +13,17 @@ void main() async {
     rsaKeySize: RSAKeySize.s2048,
   );
   final p3p = await P3p.createSession(
-    '/tmp/p3p_test_store',
-    testPk.armor(),
-    privateKeyPassword,
-  );
+      '/tmp/p3p_test_store',
+      testPk.armor(),
+      privateKeyPassword,
+      db.DatabaseImplDrift(dbFolder: '/tmp/p3p_test_store'),);
 
-  print("testing as: ${testPk.fingerprint} (${testPk.keyID})");
+  print('testing as: ${testPk.fingerprint} (${testPk.keyID})');
   group('library v1', () {
-    test('getSelfInfo', () => p3p.getSelfInfo());
+    test('getSelfInfo', p3p.getSelfInfo);
     test('sendMessage', () async {
       final userInfo = await p3p.getSelfInfo();
-      final err = await p3p.sendMessage(userInfo, "test");
+      final err = await p3p.sendMessage(userInfo, 'test');
       if (err != null) {
         fail(err.toString());
       }
@@ -31,7 +32,7 @@ void main() async {
       final userInfo = await p3p.getSelfInfo();
       final msgs = await userInfo.getMessages(p3p);
       print(msgs.length);
-      for (var element in msgs) {
+      for (final element in msgs) {
         print('msg: ${element.text}');
       }
     });

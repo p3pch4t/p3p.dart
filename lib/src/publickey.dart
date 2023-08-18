@@ -1,31 +1,30 @@
 import 'package:dart_pg/dart_pg.dart' as pgp;
-import 'package:objectbox/objectbox.dart';
+import 'package:p3p/src/p3p_base.dart';
 
-@Entity()
 class PublicKey {
-  static Future<PublicKey?> create(String armoredPublicKey) async {
-    try {
-      final publicKey = await pgp.OpenPGP.readPublicKey(armoredPublicKey);
-      publicKey.fingerprint;
-      return PublicKey(
-        fingerprint: publicKey.fingerprint,
-        publickey: publicKey.armor(),
-      );
-    } catch (e) {
-      print(e);
-    }
-    return null;
-  }
 
   PublicKey({
     required this.fingerprint,
     required this.publickey,
   });
-
-  @Id()
-  int id = 0;
-
-  @Unique(onConflict: ConflictStrategy.replace)
+  static Future<PublicKey?> create(
+    P3p p3p,
+    String armoredPublicKey,
+  ) async {
+    try {
+      final publicKey = await pgp.OpenPGP.readPublicKey(armoredPublicKey);
+      publicKey.fingerprint;
+      final pubkeyret = PublicKey(
+        fingerprint: publicKey.fingerprint,
+        publickey: publicKey.armor(),
+      );
+      await pubkeyret.save(p3p);
+      return pubkeyret;
+    } catch (e) {
+      print(e);
+    }
+    return null;
+  }
   String fingerprint;
 
   String publickey;
@@ -42,5 +41,9 @@ class PublicKey {
       ],
     );
     return msg.armor();
+  }
+
+  Future<void> save(P3p p3p) async {
+    await p3p.db.save(this);
   }
 }

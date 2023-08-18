@@ -10,23 +10,22 @@ final localDio = Dio(BaseOptions(receiveDataWhenStatusError: true));
 
 class ReachableLocal implements Reachable {
   static shell_router.Router getListenRouter(P3p p3p) {
-    var router = shell_router.Router();
-    router.post("/", (shelf.Request request) async {
+    final router = shell_router.Router();
+    router.post('/', (shelf.Request request) async {
       final body = await request.readAsString();
       final userI = await Event.tryProcess(p3p, body);
       if (userI == null) {
         return shelf.Response(
           404,
-          body: JsonEncoder.withIndent('    ').convert(
+          body: const JsonEncoder.withIndent('    ').convert(
             [
-              (Event(
+              Event(
                 eventType: EventType.introduceRequest,
-                destinationPublicKey: ToOne(),
-              )..data = EventIntroduceRequest(
-                      endpoint: (await p3p.getSelfInfo()).endpoint,
-                      publickey: p3p.privateKey.toPublic,
-                    ).toJson())
-                  .toJson(),
+                data: EventIntroduceRequest(
+                  endpoint: (await p3p.getSelfInfo()).endpoint,
+                  publickey: p3p.privateKey.toPublic,
+                ).toJson(),
+              ).toJson(),
             ],
           ),
         );
@@ -41,11 +40,11 @@ class ReachableLocal implements Reachable {
   }
 
   static List<Endpoint> defaultEndpoints = [
-    Endpoint(protocol: "local", host: "127.0.0.1:3893", extra: "")
+    Endpoint(protocol: 'local', host: '127.0.0.1:3893', extra: '')
   ];
 
   @override
-  List<String> protocols = ["local", "locals"];
+  List<String> protocols = ['local', 'locals'];
 
   @override
   Future<P3pError?> reach({
@@ -58,7 +57,7 @@ class ReachableLocal implements Reachable {
       return P3pError(
         code: -1,
         info:
-            "scheme ${endpoint.protocol} is not supported by ReachableLocal (${protocols.toString()})",
+            'scheme ${endpoint.protocol} is not supported by ReachableLocal ($protocols)',
       );
     }
     final host =
@@ -73,9 +72,9 @@ class ReachableLocal implements Reachable {
       print((e as DioException).response);
     }
     if (resp?.statusCode == 200) {
-      await Event.tryProcess(p3p, resp?.data);
+      await Event.tryProcess(p3p, resp?.data as String);
       return null;
     }
-    return P3pError(code: -1, info: "unable to reach");
+    return P3pError(code: -1, info: 'unable to reach');
   }
 }

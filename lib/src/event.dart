@@ -6,72 +6,50 @@ import 'package:p3p/p3p.dart';
 import 'package:p3p/src/reachable/relay.dart';
 import 'package:uuid/uuid.dart';
 
-@Entity()
 class Event {
   Event({
-    this.eventType,
+    required this.eventType,
+    required this.data,
+    this.id = -1,
     this.encryptPrivkeyArmored,
     this.encryptPrivkeyPassowrd,
-    required this.destinationPublicKey,
+    this.destinationPublicKey,
   });
-  @Id()
-  int id = 0;
-
-  @Transient()
-  EventType? eventType;
-
+  int id = -1;
+  EventType eventType;
   String? encryptPrivkeyArmored;
   String? encryptPrivkeyPassowrd;
-
-  ToOne<PublicKey> destinationPublicKey = ToOne();
-
-  set dbType(int i) => eventType = EventType.values[i];
-  int get dbType => eventType!.index;
-
-  @Transient()
-  Map<String, dynamic> get data {
-    final decoded = json.decode(dbData);
-    if (decoded is String) return {};
-    return decoded;
-  }
-
-  @Transient()
-  set data(Map<String, dynamic> nData) => dbData = json.encode(nData);
-
-  String dbData = "{}";
-
-  String uuid = Uuid().v4();
+  PublicKey? destinationPublicKey;
+  Map<String, dynamic> data;
+  String uuid = const Uuid().v4();
 
   Map<String, dynamic> toJson() {
     return {
-      "type": switch (eventType) {
-        EventType.introduce => "introduce",
-        EventType.introduceRequest => "introduce.request",
-        EventType.message => "message",
-        EventType.fileRequest => "file.request",
-        EventType.file => "file",
-        EventType.unimplemented => "unimplemented",
-        null => "unimplemented",
+      'type': switch (eventType) {
+        EventType.introduce => 'introduce',
+        EventType.introduceRequest => 'introduce.request',
+        EventType.message => 'message',
+        EventType.fileRequest => 'file.request',
+        EventType.file => 'file',
+        EventType.unimplemented => 'unimplemented',
       },
-      "data": data,
-      "uuid": uuid,
+      'data': data,
+      'uuid': uuid,
     };
   }
 
   static Event fromJson(Map<String, dynamic> json) {
     return Event(
-      eventType: switch (json["type"] as String) {
-        "introduce" => EventType.introduce,
-        "introduce.request" => EventType.introduceRequest,
-        "message" => EventType.message,
-        "file.request" => EventType.fileRequest,
-        "file" => EventType.file,
+      eventType: switch (json['type'] as String) {
+        'introduce' => EventType.introduce,
+        'introduce.request' => EventType.introduceRequest,
+        'message' => EventType.message,
+        'file.request' => EventType.fileRequest,
+        'file' => EventType.file,
         _ => EventType.unimplemented,
       },
-      destinationPublicKey: ToOne(),
-    )
-      ..data = json["data"]
-      ..uuid = json["uuid"];
+      data: json['data'] as Map<String, dynamic>,
+    )..uuid = json['uuid'] as String;
   }
 
   static Future<UserInfo?> tryProcess(
@@ -86,21 +64,21 @@ class Event {
     try {
       final plainText = json.decode(payload) as List<dynamic>;
 
-      for (var evt in plainText) {
+      for (final evt in plainText) {
         if (evt is String) {
           final p = await parsePayload(payload, p3p);
           ui = p.userInfo;
-          for (var evt in p.events) {
-            evt.process(ui!, p3p);
+          for (final evt in p.events) {
+            await evt.process(ui!, p3p);
           }
           continue;
         }
-        if (evt['type'] == 'introduce' || evt['type'] == "introduce.request") {
-          final evtp = Event.fromJson(evt);
+        if (evt['type'] == 'introduce' || evt['type'] == 'introduce.request') {
+          final evtp = Event.fromJson(evt as Map<String, dynamic>);
           if (evtp.eventType == EventType.introduce) {
-            evtp.processIntroduce(p3p);
+            await evtp.processIntroduce(p3p);
           } else if (evtp.eventType == EventType.introduceRequest) {
-            evtp.processIntroduceRequest(p3p);
+            await evtp.processIntroduceRequest(p3p);
           } else {}
           continue;
         }
@@ -110,11 +88,11 @@ class Event {
       // Okay, are not plaintext - this is more than fine.
       final parsed = await Event.parsePayload(payload, p3p);
       ui = parsed.userInfo;
-      for (var element in parsed.events) {
+      for (final element in parsed.events) {
         if (ui == null) {
-          tryProcess(p3p, payload);
+          await tryProcess(p3p, payload);
         } else {
-          element.process(ui, p3p);
+          await element.process(ui, p3p);
         }
       }
     }
@@ -126,11 +104,11 @@ class Event {
     final ret = ParsedPayload(userInfo: null, events: []);
     try {
       final src = jsonDecode(payload) as List<dynamic>;
-      for (var element in src) {
-        final evt = (await Event.parsePayload(element, p3p));
+      for (final element in src) {
+        final evt = await Event.parsePayload(element.toString(), p3p);
         ret.events.addAll(evt.events);
         ret.userInfo = evt.userInfo;
-        print("new event from:${ret.userInfo?.publicKey.fingerprint}");
+        print('new event from:${ret.userInfo?.publicKey.fingerprint}');
       }
       return ret;
     } catch (e) {
@@ -145,7 +123,7 @@ class Event {
     if (data.signingKeyIDs.length != 1) {
       return ParsedPayload(userInfo: null, events: []);
     }
-    for (var useri in p3p.userInfoBox.getAll()) {
+    for (final useri in await p3p.db.getAllUserInfo()) {
       if (useri.publicKey.fingerprint
           .endsWith(data.signingKeyIDs.first.toString())) {
         userInfo = useri;
@@ -153,100 +131,103 @@ class Event {
     }
     final body = data.literalData!.text;
     final jsonBody = json.decode(body) as List<dynamic>;
-    for (var elm in jsonBody) {
-      final evt = Event.fromJson(elm);
+    for (final elm in jsonBody) {
+      final evt = Event.fromJson(elm as Map<String, dynamic>);
       if (userInfo == null && evt.eventType == EventType.introduce) {
         userInfo = UserInfo(
-          dbPublicKey: ToOne(
-            target: await PublicKey.create(evt.data["publickey"]),
-          ),
+          publicKey:
+              (await PublicKey.create(p3p, evt.data['publickey'] as String))!,
+          endpoint: [...ReachableRelay.defaultEndpoints],
         );
-        userInfo.save(p3p);
+        await userInfo.save(p3p);
       }
       ret.events.add(Event.fromJson(elm));
     }
     ret.userInfo = userInfo;
     if (ret.userInfo == null) {
-      print("CRITICAL: ret.userInfo is null, returning but it will fail");
+      print('CRITICAL: ret.userInfo is null, returning but it will fail');
     }
     return ret;
   }
 
-  void process(UserInfo userInfo, P3p p3p) async {
-    print("processing: - ${userInfo.id} - ${userInfo.name} - $eventType");
+  Future<void> process(UserInfo userInfo, P3p p3p) async {
+    print('processing: - ${userInfo.id} - ${userInfo.name} - $eventType');
 
     if (await p3p.callOnEvent(this)) {
       if (id != 0) {
-        p3p.eventBox.remove(id);
+        await p3p.db.remove(id);
       }
       return;
     }
 
     switch (eventType) {
       case EventType.introduce:
-        processIntroduce(p3p);
+        await processIntroduce(p3p);
       case EventType.introduceRequest:
-        processIntroduceRequest(p3p);
+        await processIntroduceRequest(p3p);
       case EventType.message:
-        processMessage(p3p, userInfo);
+        await processMessage(p3p, userInfo);
       case EventType.fileRequest:
-        processFileRequest(p3p, userInfo);
+        await processFileRequest(p3p, userInfo);
       case EventType.file:
-        processFile(p3p, userInfo);
-      case EventType.unimplemented || null:
-        print("event: unimplemented");
+        await processFile(p3p, userInfo);
+      case EventType.unimplemented:
+        print('event: unimplemented');
     }
     if (id != 0) {
-      p3p.eventBox.remove(id);
+      await p3p.db.remove(this);
     }
   }
 
   Future<bool> processIntroduce(P3p p3p) async {
-    print("event: introduce");
-    if (data["publickey"] is! String ||
-        data["endpoint"] is! List<dynamic> /* string actually.. */ ||
-        data["username"] is! String ||
-        data["filestore"] is! List<dynamic>) {
-      print("invalid event, ignoring");
+    print('event: introduce');
+    if (data['publickey'] is! String ||
+        data['endpoint'] is! List<dynamic> /* string actually.. */ ||
+        data['username'] is! String ||
+        data['filestore'] is! List<dynamic>) {
+      print('invalid event, ignoring');
       print("publickey: ${data["publickey"].runtimeType}");
       print("endpoint: ${data["endpoint"].runtimeType}");
       print("username: ${data["username"].runtimeType}");
       print("filestore: ${data["filestore"].runtimeType}");
       return true;
     }
-    final publicKey = await pgp.OpenPGP.readPublicKey(data['publickey']);
-    UserInfo? useri = p3p.getUserInfo(publicKey.fingerprint);
+    final publicKey =
+        await pgp.OpenPGP.readPublicKey(data['publickey'] as String);
+    var useri = await p3p.db.getUserInfo(
+      publicKey:
+          (await p3p.db.getPublicKey(fingerprint: publicKey.fingerprint))!,
+    );
     useri ??= UserInfo(
-      dbPublicKey: ToOne(
-        target: (await PublicKey.create(data['publickey']))!,
-      ),
-    )
-      ..endpoint = [
+      publicKey: (await PublicKey.create(p3p, data['publickey'] as String))!,
+      endpoint: [
         ...ReachableRelay.defaultEndpoints,
-      ]
-      ..save(p3p);
+      ],
+    );
     useri.lastMessage = DateTime.now();
     final eList = <String>[];
-    data["endpoint"].forEach((elm) {
+    data['endpoint'].forEach((elm) {
       eList.add(elm.toString());
     });
     useri.endpoint.clear();
     useri.endpoint.addAll(Endpoint.fromStringList(eList));
-    useri.name = data["username"];
+    useri.name = data['username'] as String?;
     final elms = await useri.fileStore.getFileStoreElement(p3p);
-    for (var elm in data["filestore"]) {
-      bool fileExisted = false;
-      for (var elmStored in elms) {
-        if (elmStored.uuid != elm["uuid"]) continue;
+    for (final elm in data['filestore'] as List<dynamic>) {
+      var fileExisted = false;
+      for (final elmStored in elms) {
+        if (elmStored.uuid != elm['uuid']) continue;
         fileExisted = true;
-        final modTime = DateTime.fromMicrosecondsSinceEpoch(elm["modifyTime"]);
+        final modTime =
+            DateTime.fromMicrosecondsSinceEpoch(elm['modifyTime'] as int);
         if (elmStored.modifyTime.isBefore(modTime)) {
-          elmStored.path = elm["path"];
-          elmStored.sha512sum = elm["sha512sum"];
-          elmStored.sizeBytes = elm["sizeBytes"];
-          elmStored.isDeleted = elm["isDeleted"];
-          elmStored.modifyTime = modTime;
-          elmStored.requestedLatestVersion = false;
+          elmStored
+            ..path = elm['path'] as String
+            ..sha512sum = elm['sha512sum'] as String
+            ..sizeBytes = elm['sizeBytes'] as int
+            ..isDeleted = elm['isDeleted'] as bool
+            ..modifyTime = modTime
+            ..requestedLatestVersion = false;
           await elmStored.save(
             p3p,
             shouldIntroduce: false,
@@ -257,49 +238,51 @@ class Event {
         await useri.fileStore.putFileStoreElement(
           p3p,
           localFile: null,
-          localFileSha512sum: elm["sha512sum"],
-          sizeBytes: elm["sizeBytes"],
-          fileInChatPath: elm["path"],
-          uuid: elm["uuid"],
+          localFileSha512sum: elm['sha512sum'] as String,
+          sizeBytes: elm['sizeBytes'] as int,
+          fileInChatPath: elm['path'] as String,
+          uuid: elm['uuid'] as String,
         );
       }
     }
 
-    useri.save(p3p);
+    await useri.save(p3p);
     return true;
   }
 
   Future<bool> processIntroduceRequest(P3p p3p) async {
-    print("event: introduce.request");
-    final publicKey = await pgp.OpenPGP.readPublicKey(data['publickey']);
-    UserInfo? userInfo = p3p.getUserInfo(publicKey.fingerprint);
+    print('event: introduce.request');
+    final publicKey =
+        await pgp.OpenPGP.readPublicKey(data['publickey'] as String);
+    var userInfo = await p3p.db.getUserInfo(
+      publicKey:
+          (await p3p.db.getPublicKey(fingerprint: publicKey.fingerprint))!,
+    );
     final selfUser = await p3p.getSelfInfo();
     userInfo ??= UserInfo(
-      dbPublicKey: ToOne(target: (await PublicKey.create(data['publickey']))!),
-    );
-    userInfo.endpoint.clear();
-    userInfo.endpoint.addAll(
-      Endpoint.fromStringList(data["endpoint"])
+      publicKey: (await PublicKey.create(p3p, data['publickey'] as String))!,
+      endpoint: Endpoint.fromStringList(data['endpoint'] as List<String>)
         ..addAll(ReachableRelay.defaultEndpoints),
     );
 
-    userInfo.addEvent(
+    await userInfo.addEvent(
       p3p,
       Event(
         eventType: EventType.introduce,
-        destinationPublicKey: ToOne(targetId: userInfo.publicKey.id),
-      )..data = EventIntroduce(
+        destinationPublicKey: userInfo.publicKey,
+        data: EventIntroduce(
           endpoint: selfUser.endpoint,
           fselm: await userInfo.fileStore.getFileStoreElement(p3p),
           publickey: p3p.privateKey.toPublic,
           username: selfUser.name ?? 'unknown username (ir)',
         ).toJson(),
+      ),
     );
     return true;
   }
 
   Future<bool> processMessage(P3p p3p, UserInfo userInfo) async {
-    print("event: processMessage");
+    print('event: processMessage');
     assert(eventType == EventType.message);
     await userInfo.addMessage(
       p3p,
@@ -312,58 +295,59 @@ class Event {
     P3p p3p,
     UserInfo userInfo,
   ) async {
-    print("processFileRequest: ");
+    print('processFileRequest: ');
     assert(eventType == EventType.fileRequest);
     final freq = EventFileRequest.fromEvent(this);
-    final file = p3p.fileStoreElementBox
-        .query(FileStoreElement_.roomFingerprint
-            .equals(userInfo.publicKey.fingerprint)
-            .and(FileStoreElement_.uuid.equals(freq.uuid)))
-        .build()
-        .findFirst();
+    final file = await p3p.db.getFileStoreElement(
+      roomFingerprint: userInfo.publicKey.fingerprint,
+      uuid: freq.uuid,
+    );
     if (file == null) return true; // we don't have that file
     final sendStart = freq.start ?? 0;
     final sendEnd = freq.end ?? await file.file.length();
-    //min(file.sizeBytes, freq.end ?? (sendStart + 16 * 1024 * 1024));
     final bytes = await file.file.openRead(sendStart, sendEnd).first;
 
-    userInfo.addEvent(
+    await userInfo.addEvent(
       p3p,
       Event(
         eventType: EventType.file,
-        destinationPublicKey: ToOne(targetId: userInfo.publicKey.id),
-      )..data = EventFile(
+        destinationPublicKey: userInfo.publicKey,
+        data: EventFile(
           bytes: Uint8List.fromList(bytes),
           end: sendEnd,
           start: sendStart,
           uuid: freq.uuid,
         ).toJson(),
+      ),
     );
     return true;
   }
 
   Future<bool> processFile(P3p p3p, UserInfo userInfo) async {
-    print("processFile: ");
+    print('processFile: ');
     final incomingFile = EventFile.fromEvent(this);
-    final file = p3p.fileStoreElementBox
-        .query(FileStoreElement_.roomFingerprint
-            .equals(userInfo.publicKey.fingerprint)
-            .and(FileStoreElement_.uuid.equals(incomingFile.uuid)))
-        .build()
-        .findFirst();
+    final file = await p3p.db.getFileStoreElement(
+      roomFingerprint: userInfo.publicKey.fingerprint,
+      uuid: incomingFile.uuid,
+    );
     if (file == null) {
-      print("processFile: file is null hm");
+      print('processFile: file is null hm');
       return true;
     }
     if (incomingFile.start != 0 || incomingFile.end != file.sizeBytes) {
       print("processFile: doesn't start at 0 and doesn't end at sizeBytes");
       print(
-          "if (${incomingFile.start} != 0 || ${incomingFile.end} != ${file.sizeBytes})");
+        'if (${incomingFile.start} != 0 || ${incomingFile.end} != ${file.sizeBytes})',
+      );
     }
-    file.file.writeAsBytes(incomingFile.bytes);
+    await file.file.writeAsBytes(incomingFile.bytes);
     file.sha512sum = FileStoreElement.calcSha512Sum(incomingFile.bytes);
-    file.save(p3p);
+    await file.save(p3p);
     return true;
+  }
+
+  Future<void> save(P3p p3p) async {
+    await p3p.db.save(this);
   }
 }
 
@@ -399,15 +383,15 @@ class EventIntroduce {
   final String username;
 
   Map<String, dynamic> toJson() {
-    List<String> endpoints = [];
-    for (var elm in endpoint) {
+    final endpoints = <String>[];
+    for (final elm in endpoint) {
       endpoints.add(elm.toString());
     }
     return {
-      "publickey": publickey.armor(),
-      "endpoint": endpoints,
-      "filestore": fselm,
-      "username": username,
+      'publickey': publickey.armor(),
+      'endpoint': endpoints,
+      'filestore': fselm,
+      'username': username,
     };
   }
 }
@@ -423,8 +407,8 @@ class EventIntroduceRequest {
 
   Map<String, dynamic> toJson() {
     return {
-      "publickey": publickey.armor(),
-      "endpoint": endpoint.toString(), // tostring
+      'publickey': publickey.armor(),
+      'endpoint': endpoint.toString(), // tostring
     };
   }
 }
@@ -439,12 +423,12 @@ class EventMessage {
 
   Map<String, dynamic> toJson() {
     return {
-      "text": text,
-      "type": switch (type) {
+      'text': text,
+      'type': switch (type) {
         MessageType.unimplemented => null,
-        MessageType.text => "text",
-        MessageType.service => "service",
-        MessageType.hidden => "hidden",
+        MessageType.text => 'text',
+        MessageType.service => 'service',
+        MessageType.hidden => 'hidden',
       }
     };
   }
@@ -461,17 +445,17 @@ class EventFileRequest {
   int? end;
   Map<String, dynamic> toJson() {
     return {
-      "uuid": uuid,
-      "start": start,
-      "end": end,
+      'uuid': uuid,
+      'start': start,
+      'end': end,
     };
   }
 
   static EventFileRequest fromEvent(Event event) {
     return EventFileRequest(
-      uuid: event.data["uuid"],
-      start: event.data["start"],
-      end: event.data["end"],
+      uuid: event.data['uuid'] as String,
+      start: event.data['start'] as int,
+      end: event.data['end'] as int,
     );
   }
 }
@@ -490,19 +474,19 @@ class EventFile {
 
   Map<String, dynamic> toJson() {
     return {
-      "uuid": uuid,
-      "start": start,
-      "end": end,
-      "bytes": base64.encode(bytes),
+      'uuid': uuid,
+      'start': start,
+      'end': end,
+      'bytes': base64.encode(bytes),
     };
   }
 
   static EventFile fromEvent(Event event) {
     return EventFile(
-      uuid: event.data["uuid"],
-      start: event.data["start"],
-      end: event.data["end"],
-      bytes: base64.decode(event.data["bytes"]),
+      uuid: event.data['uuid'] as String,
+      start: event.data['start'] as int,
+      end: event.data['end'] as int,
+      bytes: base64.decode(event.data['bytes'] as String),
     );
   }
 }
