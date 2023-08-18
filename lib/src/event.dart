@@ -152,9 +152,15 @@ class Event {
 
   Future<void> process(UserInfo userInfo, P3p p3p) async {
     print('processing: - ${userInfo.id} - ${userInfo.name} - $eventType');
+    const JsonEncoder.withIndent('    ')
+        .convert(toJson())
+        .split('\n')
+        .forEach((element) {
+      print('$eventType: $element');
+    });
 
     if (await p3p.callOnEvent(this)) {
-      if (id != 0) {
+      if (id != -1) {
         await p3p.db.remove(id);
       }
       return;
@@ -213,14 +219,18 @@ class Event {
     useri.endpoint.addAll(Endpoint.fromStringList(eList));
     useri.name = data['username'] as String?;
     final elms = await useri.fileStore.getFileStoreElement(p3p);
+    print('processing filestore');
     for (final elm in data['filestore'] as List<dynamic>) {
+      print('${elm['uuid']}');
       var fileExisted = false;
       for (final elmStored in elms) {
         if (elmStored.uuid != elm['uuid']) continue;
+        // print('file existed = true');
         fileExisted = true;
         final modTime =
             DateTime.fromMicrosecondsSinceEpoch(elm['modifyTime'] as int);
         if (elmStored.modifyTime.isBefore(modTime)) {
+          // print('actually updating');
           elmStored
             ..path = elm['path'] as String
             ..sha512sum = elm['sha512sum'] as String
@@ -228,13 +238,16 @@ class Event {
             ..isDeleted = elm['isDeleted'] as bool
             ..modifyTime = modTime
             ..requestedLatestVersion = false;
-          await elmStored.save(
-            p3p,
-            shouldIntroduce: false,
-          );
+          await p3p.db.save(elmStored);
+        } else {
+          // print('ignoring because');
+          // print(' - remote:$modTime');
+          // print(' - local :${elmStored.modifyTime}');
         }
       }
       if (!fileExisted) {
+        print('file existed = false');
+
         await useri.fileStore.putFileStoreElement(
           p3p,
           localFile: null,
@@ -245,6 +258,7 @@ class Event {
         );
       }
     }
+    print('processing filestore: done');
 
     await useri.save(p3p);
     return true;
@@ -454,8 +468,8 @@ class EventFileRequest {
   static EventFileRequest fromEvent(Event event) {
     return EventFileRequest(
       uuid: event.data['uuid'] as String,
-      start: event.data['start'] as int,
-      end: event.data['end'] as int,
+      start: event.data['start'] as int?,
+      end: event.data['end'] as int?,
     );
   }
 }

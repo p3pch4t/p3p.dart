@@ -84,6 +84,7 @@ class FileStoreElements extends Table {
   IntColumn get sizeBytes => integer()();
   BoolColumn get shouldFetch => boolean()();
   BoolColumn get requestedLatestVersion => boolean()();
+  DateTimeColumn get modifyTime => dateTime()();
   BoolColumn get deleted => boolean().withDefault(const Constant(false))();
 }
 
@@ -103,7 +104,7 @@ class DatabaseImplDrift extends _$DatabaseImplDrift implements Database {
   DatabaseImplDrift({required String dbFolder})
       : super(_openConnection(dbFolder));
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 1;
 
   @override
   Future<void> save<T>(T elm) async {
@@ -251,18 +252,30 @@ class DatabaseImplDrift extends _$DatabaseImplDrift implements Database {
       case ppp.FileStoreElement:
         assert(elm is ppp.FileStoreElement);
         if (elm is ppp.FileStoreElement) {
-          await into(fileStoreElements).insertOnConflictUpdate(
-            FileStoreElementsCompanion.insert(
-              uuid: elm.uuid,
-              devicePath: p.normalize(p.join('/', elm.localPath)),
-              p3pPath: p.normalize(p.join('/', elm.path)),
-              roomFingerprint: elm.roomFingerprint,
-              sizeBytes: elm.sizeBytes,
-              shouldFetch: elm.shouldFetch,
-              requestedLatestVersion: elm.requestedLatestVersion,
-              sha512sum: elm.sha512sum,
-            ),
+          final q = select(fileStoreElements)
+            ..where((tbl) => tbl.uuid.equals(elm.uuid))
+            ..where((tbl) => tbl.roomFingerprint.equals(elm.roomFingerprint))
+            ..limit(1);
+          final selm = await q.getSingleOrNull();
+          final pi = FileStoreElementsCompanion.insert(
+            id: Value.ofNullable(selm?.id),
+            uuid: elm.uuid,
+            devicePath: p.normalize(p.join('/', elm.localPath)),
+            p3pPath: p.normalize(p.join('/', elm.path)),
+            roomFingerprint: elm.roomFingerprint,
+            sizeBytes: elm.sizeBytes,
+            shouldFetch: elm.shouldFetch,
+            requestedLatestVersion: elm.requestedLatestVersion,
+            sha512sum: elm.sha512sum,
+            deleted: Value(elm.isDeleted),
+            modifyTime: elm.modifyTime,
           );
+
+          if (selm == null) {
+            await into(fileStoreElements).insert(pi);
+          } else {
+            await update(fileStoreElements).replace(pi);
+          }
         }
         return;
     }
@@ -344,7 +357,8 @@ class DatabaseImplDrift extends _$DatabaseImplDrift implements Database {
       isDeleted: elm.deleted,
     )
       ..uuid = elm.uuid
-      ..id = elm.id;
+      ..id = elm.id
+      ..modifyTime = elm.modifyTime;
   }
 
   @override
@@ -374,7 +388,8 @@ class DatabaseImplDrift extends _$DatabaseImplDrift implements Database {
           isDeleted: elm.deleted,
         )
           ..uuid = elm.uuid
-          ..id = elm.id,
+          ..id = elm.id
+          ..modifyTime = elm.modifyTime,
       );
     }
     return ret;

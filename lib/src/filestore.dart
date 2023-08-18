@@ -35,7 +35,7 @@ class FileStoreElement {
   int sizeBytes;
   String localPath;
   bool isDeleted = false;
-  DateTime modifyTime = DateTime.fromMillisecondsSinceEpoch(0);
+  DateTime modifyTime = DateTime.fromMicrosecondsSinceEpoch(0);
   int get downloadedSizeBytes => file.lengthSync();
   bool shouldFetch = false;
   File get file => File(localPath);
@@ -121,7 +121,7 @@ class FileStore {
     final storeFile = File(
       p.join(p3p.fileStorePath, '$roomFingerprint-${const Uuid().v4()}'),
     );
-    if (!await storeFile.exists()) {
+    if (!storeFile.existsSync()) {
       await storeFile.create(recursive: true);
     }
     if (localFile != null) {
@@ -144,7 +144,11 @@ class FileStore {
       localPath: storeFile.path,
       roomFingerprint: roomFingerprint,
     )
-      ..shouldFetch = localFile == null ? false : true
+      ..shouldFetch = (localFile == null ? false : true) ||
+          (fileInChatPath.endsWith('.xdc') ||
+              fileInChatPath.endsWith('.jsonp') ||
+              fileInChatPath.startsWith('/.config') ||
+              fileInChatPath.startsWith('.config'))
       ..path = fileInChatPath
       ..uuid = uuid;
     await p3p.db.save(fselm);

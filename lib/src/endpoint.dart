@@ -1,6 +1,9 @@
 class Endpoint {
   Endpoint({
-    required this.protocol, required this.host, required this.extra, this.id = -1,
+    required this.protocol,
+    required this.host,
+    required this.extra,
+    this.id = -1,
     this.reachTriesTotal = 0,
     this.reachTriesSuccess = 0,
   });
@@ -16,7 +19,7 @@ class Endpoint {
   String host;
 
   String extra;
-  DateTime lastReached = DateTime.fromMillisecondsSinceEpoch(0);
+  DateTime lastReached = DateTime.fromMicrosecondsSinceEpoch(0);
   int reachTriesTotal = 0;
   int reachTriesSuccess = 0;
   int get reachTriesFail => reachTriesTotal - reachTriesSuccess;
