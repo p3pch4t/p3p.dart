@@ -102,7 +102,9 @@ class FileStoreElements extends Table {
 )
 class DatabaseImplDrift extends _$DatabaseImplDrift implements Database {
   DatabaseImplDrift({required String dbFolder})
-      : super(_openConnection(dbFolder));
+      : super(_openConnection(dbFolder)) {
+    driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
+  }
   @override
   int get schemaVersion => 1;
 

@@ -5,7 +5,7 @@ import 'package:p3p/src/database/drift.dart' as db;
 import 'package:path/path.dart' as p;
 
 final fileStorePath = p.join(
-  Platform.environment['HOME'] as String,
+  Platform.environment['HOME']!,
   '.config/p3p-bots/example_bot',
 );
 
@@ -44,6 +44,8 @@ void _messageCallback(P3p p3p, Message msg, UserInfo user) {
 
 Future<void> generatePrivkey(File storedPgp) async {
   final encPgp = await pgp.OpenPGP.generateKey(
-      ['simplebot <no-reply@mrcyjanek.net>'], 'passpharse',);
+    ['simplebot <no-reply@mrcyjanek.net>'],
+    'passpharse',
+  );
   await storedPgp.writeAsString(encPgp.armor());
 }

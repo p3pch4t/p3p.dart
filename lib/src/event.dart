@@ -158,13 +158,14 @@ class Event {
         .forEach((element) {
       print('$eventType: $element');
     });
-
-    if (await p3p.callOnEvent(this)) {
+    print('processing...');
+    if (await p3p.callOnEvent(userInfo, this)) {
       if (id != -1) {
         await p3p.db.remove(id);
       }
       return;
     }
+    print('still processing...');
 
     switch (eventType) {
       case EventType.introduce:
@@ -201,8 +202,7 @@ class Event {
     final publicKey =
         await pgp.OpenPGP.readPublicKey(data['publickey'] as String);
     var useri = await p3p.db.getUserInfo(
-      publicKey:
-          (await p3p.db.getPublicKey(fingerprint: publicKey.fingerprint))!,
+      publicKey: await p3p.db.getPublicKey(fingerprint: publicKey.fingerprint),
     );
     useri ??= UserInfo(
       publicKey: (await PublicKey.create(p3p, data['publickey'] as String))!,
@@ -269,8 +269,7 @@ class Event {
     final publicKey =
         await pgp.OpenPGP.readPublicKey(data['publickey'] as String);
     var userInfo = await p3p.db.getUserInfo(
-      publicKey:
-          (await p3p.db.getPublicKey(fingerprint: publicKey.fingerprint))!,
+      publicKey: await p3p.db.getPublicKey(fingerprint: publicKey.fingerprint),
     );
     final selfUser = await p3p.getSelfInfo();
     userInfo ??= UserInfo(
@@ -443,7 +442,7 @@ class EventMessage {
         MessageType.text => 'text',
         MessageType.service => 'service',
         MessageType.hidden => 'hidden',
-      }
+      },
     };
   }
 }

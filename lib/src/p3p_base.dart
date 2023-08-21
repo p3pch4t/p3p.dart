@@ -90,7 +90,7 @@ class P3p {
   Future<UserInfo?> getUserInfoByKey(String armored) async {
     final pubkey = await pgp.OpenPGP.readPublicKey(armored);
     return await db.getUserInfo(
-      publicKey: (await db.getPublicKey(fingerprint: pubkey.fingerprint))!,
+      publicKey: await db.getPublicKey(fingerprint: pubkey.fingerprint),
     );
   }
 
@@ -152,11 +152,12 @@ class P3p {
   /// However if new event arrives it will execute normally.
   /// Avoid long blocking of events to not render your peer
   /// unresponsive or to not have out of sync events in database.
-  List<Future<bool> Function(P3p p3p, Event evt)> onEventCallback = [];
-  Future<bool> callOnEvent(Event evt) async {
+  List<Future<bool> Function(P3p p3p, Event evt, UserInfo ui)> onEventCallback =
+      [];
+  Future<bool> callOnEvent(UserInfo userInfo, Event evt) async {
     var toRet = false;
     for (final fn in onEventCallback) {
-      if (await fn(this, evt)) toRet = true;
+      if (await fn(this, evt, userInfo)) toRet = true;
     }
     return toRet;
   }

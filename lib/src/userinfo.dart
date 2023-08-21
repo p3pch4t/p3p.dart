@@ -50,7 +50,7 @@ class UserInfo {
   }
 
   Future<void> relayEvents(P3p p3p, PublicKey publicKey) async {
-    // print("relayEvents");
+    print('relayEvents');
     if (endpoint.isEmpty) {
       print('fixing endpoint by adding ReachableRelay.defaultEndpoints');
       endpoint = ReachableRelay.defaultEndpoints;
@@ -58,7 +58,6 @@ class UserInfo {
     final evts = await getEvents(p3p, publicKey);
 
     if (evts.isEmpty) {
-      // print("ignoring because event list is empty");
       return;
     }
     // bool canRelayBulk = true;
@@ -125,6 +124,7 @@ class UserInfo {
       lastIntroduce = DateTime.now();
     }
     lastEvent = DateTime.now();
+    evt.destinationPublicKey = publicKey;
     await evt.save(p3p);
     await save(p3p);
   }

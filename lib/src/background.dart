@@ -5,7 +5,7 @@ import 'package:p3p/src/reachable/relay.dart';
 
 Future<void> scheduleTasks(P3p p3p) async {
   Timer.periodic(
-    const Duration(seconds: 5),
+    const Duration(seconds: 10),
     (Timer t) async {
       await pingRelay(p3p);
       await processTasks(p3p);
