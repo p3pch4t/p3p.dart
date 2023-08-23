@@ -46,7 +46,7 @@ class FileStoreElement {
     if (shouldIntroduce) {
       modifyTime = DateTime.now();
       final useri = await p3p.db.getUserInfo(
-        publicKey: (await p3p.db.getPublicKey(fingerprint: roomFingerprint))!,
+        publicKey: await p3p.db.getPublicKey(fingerprint: roomFingerprint),
       );
       if (useri != null) {
         useri.lastIntroduce = DateTime(2000);
@@ -153,7 +153,7 @@ class FileStore {
       ..uuid = uuid;
     await p3p.db.save(fselm);
     final useri = await p3p.db.getUserInfo(
-      publicKey: (await p3p.db.getPublicKey(fingerprint: roomFingerprint))!,
+      publicKey: await p3p.db.getPublicKey(fingerprint: roomFingerprint),
     );
     if (useri == null) return fselm;
     useri.lastIntroduce = DateTime(2001);

@@ -27,6 +27,7 @@ void main() async {
     'passpharse',
     db.DatabaseImplDrift(
       dbFolder: p.join(fileStorePath, 'db-drift'),
+      singularFileStore: false,
     ),
   );
 

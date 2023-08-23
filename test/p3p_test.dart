@@ -13,10 +13,14 @@ void main() async {
     rsaKeySize: RSAKeySize.s2048,
   );
   final p3p = await P3p.createSession(
-      '/tmp/p3p_test_store',
-      testPk.armor(),
-      privateKeyPassword,
-      db.DatabaseImplDrift(dbFolder: '/tmp/p3p_test_store'),);
+    '/tmp/p3p_test_store',
+    testPk.armor(),
+    privateKeyPassword,
+    db.DatabaseImplDrift(
+      dbFolder: '/tmp/p3p_test_store',
+      singularFileStore: false,
+    ),
+  );
 
   print('testing as: ${testPk.fingerprint} (${testPk.keyID})');
   group('library v1', () {

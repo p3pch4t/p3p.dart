@@ -45,12 +45,13 @@ class UserInfo {
     if (msg != null) {
       message.id = msg.id;
     }
+    lastMessage = DateTime.now();
+    await p3p.db.save(this);
     await p3p.db.save(message);
     await p3p.callOnMessage(message);
   }
 
   Future<void> relayEvents(P3p p3p, PublicKey publicKey) async {
-    print('relayEvents');
     if (endpoint.isEmpty) {
       print('fixing endpoint by adding ReachableRelay.defaultEndpoints');
       endpoint = ReachableRelay.defaultEndpoints;

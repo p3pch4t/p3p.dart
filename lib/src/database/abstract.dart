@@ -1,17 +1,24 @@
 import 'package:p3p/p3p.dart';
 
 abstract class Database {
+  // One filestore for all users.
+  final bool singularFileStore = false;
+
   Future<void> save<T>(T elm);
 
   Future<List<UserInfo>> getAllUserInfo();
 
   Future<void> remove<T>(T elm);
 
-  Future<FileStoreElement?> getFileStoreElement(
-      {required String? roomFingerprint, required String? uuid,});
+  Future<FileStoreElement?> getFileStoreElement({
+    required String? roomFingerprint,
+    required String? uuid,
+  });
 
-  Future<List<FileStoreElement>> getFileStoreElementList(
-      {required String? roomFingerprint, required bool? deleted,});
+  Future<List<FileStoreElement>> getFileStoreElementList({
+    required String? roomFingerprint,
+    required bool? deleted,
+  });
 
   Future<PublicKey?> getPublicKey({required String fingerprint});
 
@@ -22,8 +29,10 @@ abstract class Database {
 
   Future<List<Message>> getMessageList({required String? roomFingerprint});
 
-  Future<Message?> getMessage(
-      {required String? uuid, required String? roomFingerprint,});
+  Future<Message?> getMessage({
+    required String? uuid,
+    required String? roomFingerprint,
+  });
 
   Future<Message?> getLastMessage();
 }

@@ -151,6 +151,11 @@ class Event {
   }
 
   Future<void> process(UserInfo userInfo, P3p p3p) async {
+    final nui =
+        await p3p.db.getUserInfo(fingerprint: userInfo.publicKey.fingerprint);
+    if (nui != null) {
+      userInfo = nui;
+    }
     print('processing: - ${userInfo.id} - ${userInfo.name} - $eventType');
     const JsonEncoder.withIndent('    ')
         .convert(toJson())
@@ -159,19 +164,27 @@ class Event {
       print('$eventType: $element');
     });
     print('processing...');
-    if (await p3p.callOnEvent(userInfo, this)) {
-      if (id != -1) {
-        await p3p.db.remove(id);
+    if (eventType != EventType.introduce &&
+        eventType != EventType.introduceRequest) {
+      if (await p3p.callOnEvent(
+        userInfo,
+        this,
+      )) {
+        if (id != -1) {
+          await p3p.db.remove(id);
+        }
+        return;
       }
-      return;
     }
     print('still processing...');
 
     switch (eventType) {
       case EventType.introduce:
         await processIntroduce(p3p);
+        await p3p.callOnEvent(userInfo, this);
       case EventType.introduceRequest:
         await processIntroduceRequest(p3p);
+        await p3p.callOnEvent(userInfo, this);
       case EventType.message:
         await processMessage(p3p, userInfo);
       case EventType.fileRequest:
@@ -260,7 +273,7 @@ class Event {
     }
     print('processing filestore: done');
 
-    await useri.save(p3p);
+    await p3p.db.save(useri);
     return true;
   }
 

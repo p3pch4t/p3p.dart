@@ -31,8 +31,10 @@ class P3p {
     String storePath,
     String privateKey,
     String privateKeyPassword,
-    Database db,
-  ) async {
+    Database db, {
+    bool scheduleTasks = true,
+    bool listen = true,
+  }) async {
     print('p3p: using $storePath');
 
     final privkey = await (await pgp.OpenPGP.readPrivateKey(privateKey))
@@ -42,8 +44,8 @@ class P3p {
       fileStorePath: p.join(storePath, 'files'),
       db: db,
     );
-    await p3p.listen();
-    await p3p._scheduleTasks();
+    if (listen) await p3p.listen();
+    if (scheduleTasks) await p3p._scheduleTasks();
     return p3p;
   }
 
@@ -96,11 +98,6 @@ class P3p {
 
   Future<List<UserInfo>> getUsers() async {
     final uiList = await db.getAllUserInfo();
-    uiList.sort(
-      (ui, ui2) =>
-          ui.lastMessage.microsecondsSinceEpoch -
-          ui2.lastMessage.microsecondsSinceEpoch,
-    );
     return uiList;
   }
 
@@ -124,7 +121,7 @@ class P3p {
       print('scheduleTasks called more than once. this is unacceptable');
       return;
     }
-    await scheduleTasks(this);
+    unawaited(scheduleTasks(this));
   }
 
   List<void Function(P3p p3p, Message msg, UserInfo user)> onMessageCallback =

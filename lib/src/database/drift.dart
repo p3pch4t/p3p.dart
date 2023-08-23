@@ -101,10 +101,13 @@ class FileStoreElements extends Table {
   ],
 )
 class DatabaseImplDrift extends _$DatabaseImplDrift implements Database {
-  DatabaseImplDrift({required String dbFolder})
+  DatabaseImplDrift({required String dbFolder, required this.singularFileStore})
       : super(_openConnection(dbFolder)) {
     driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
   }
+  @override
+  final bool singularFileStore;
+  final String singularFileStoreUuid = 'singular';
   @override
   int get schemaVersion => 1;
 
@@ -244,9 +247,6 @@ class DatabaseImplDrift extends _$DatabaseImplDrift implements Database {
             await into(userInfos).insert(pi);
           } else {
             final q = update(userInfos);
-            print(
-              'drift, last introduce ${elm.publicKey.fingerprint} ${elm.lastIntroduce}',
-            );
             await q.replace(pi);
           }
         }
@@ -256,7 +256,11 @@ class DatabaseImplDrift extends _$DatabaseImplDrift implements Database {
         if (elm is ppp.FileStoreElement) {
           final q = select(fileStoreElements)
             ..where((tbl) => tbl.uuid.equals(elm.uuid))
-            ..where((tbl) => tbl.roomFingerprint.equals(elm.roomFingerprint))
+            ..where(
+              (tbl) => singularFileStore
+                  ? tbl.roomFingerprint.equals(singularFileStoreUuid)
+                  : tbl.roomFingerprint.equals(elm.roomFingerprint),
+            )
             ..limit(1);
           final selm = await q.getSingleOrNull();
           final pi = FileStoreElementsCompanion.insert(
@@ -264,9 +268,10 @@ class DatabaseImplDrift extends _$DatabaseImplDrift implements Database {
             uuid: elm.uuid,
             devicePath: p.normalize(p.join('/', elm.localPath)),
             p3pPath: p.normalize(p.join('/', elm.path)),
-            roomFingerprint: elm.roomFingerprint,
+            roomFingerprint:
+                singularFileStore ? singularFileStoreUuid : elm.roomFingerprint,
             sizeBytes: elm.sizeBytes,
-            shouldFetch: elm.shouldFetch,
+            shouldFetch: singularFileStore || elm.shouldFetch,
             requestedLatestVersion: elm.requestedLatestVersion,
             sha512sum: elm.sha512sum,
             deleted: Value(elm.isDeleted),
@@ -286,7 +291,16 @@ class DatabaseImplDrift extends _$DatabaseImplDrift implements Database {
 
   @override
   Future<List<ppp.UserInfo>> getAllUserInfo() async {
-    final uis = await select(userInfos).get();
+    final uis = await (select(userInfos)
+          ..orderBy(
+            [
+              (u) => OrderingTerm(
+                    expression: u.lastMessage,
+                    mode: OrderingMode.desc,
+                  ),
+            ],
+          ))
+        .get();
     final ret = <ppp.UserInfo>[];
     for (final element in uis) {
       ret.add(
@@ -342,10 +356,15 @@ class DatabaseImplDrift extends _$DatabaseImplDrift implements Database {
     required String? uuid,
   }) async {
     final q = select(fileStoreElements);
-    if (roomFingerprint != null) {
-      q.where((tbl) => tbl.roomFingerprint.equals(roomFingerprint));
+    if (roomFingerprint != null && singularFileStore == false) {
+      q.where(
+        (tbl) => tbl.roomFingerprint.equals(
+          singularFileStore ? singularFileStoreUuid : roomFingerprint,
+        ),
+      );
     }
     if (uuid != null) q.where((tbl) => tbl.uuid.equals(uuid));
+    q.limit(1);
     final elm = await q.getSingleOrNull();
     if (elm == null) return null;
     return ppp.FileStoreElement(
@@ -353,7 +372,8 @@ class DatabaseImplDrift extends _$DatabaseImplDrift implements Database {
       path: elm.p3pPath,
       localPath: elm.devicePath,
       requestedLatestVersion: elm.requestedLatestVersion,
-      roomFingerprint: elm.roomFingerprint,
+      roomFingerprint:
+          singularFileStore ? singularFileStoreUuid : elm.roomFingerprint,
       shouldFetch: elm.shouldFetch,
       sizeBytes: elm.sizeBytes,
       isDeleted: elm.deleted,
@@ -370,7 +390,11 @@ class DatabaseImplDrift extends _$DatabaseImplDrift implements Database {
   }) async {
     final q = select(fileStoreElements);
     if (roomFingerprint != null) {
-      q.where((tbl) => tbl.roomFingerprint.equals(roomFingerprint));
+      q.where(
+        (tbl) => tbl.roomFingerprint.equals(
+          singularFileStore ? singularFileStoreUuid : roomFingerprint,
+        ),
+      );
     }
     if (deleted != null) {
       q.where((tbl) => tbl.deleted.equals(deleted));
@@ -382,7 +406,8 @@ class DatabaseImplDrift extends _$DatabaseImplDrift implements Database {
         ppp.FileStoreElement(
           localPath: elm.devicePath,
           path: elm.p3pPath,
-          roomFingerprint: elm.roomFingerprint,
+          roomFingerprint:
+              singularFileStore ? singularFileStoreUuid : elm.roomFingerprint,
           sha512sum: elm.sha512sum,
           sizeBytes: elm.sizeBytes,
           shouldFetch: elm.shouldFetch,

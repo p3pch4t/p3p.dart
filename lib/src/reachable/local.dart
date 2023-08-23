@@ -40,7 +40,7 @@ class ReachableLocal implements Reachable {
   }
 
   static List<Endpoint> defaultEndpoints = [
-    Endpoint(protocol: 'local', host: '127.0.0.1:3893', extra: '')
+    Endpoint(protocol: 'local', host: '127.0.0.1:3893', extra: ''),
   ];
 
   @override

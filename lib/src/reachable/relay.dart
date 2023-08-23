@@ -91,7 +91,7 @@ class ReachableRelay implements Reachable {
     }
     final message = {
       'version': 0,
-      'date': DateTime.now().toUtc().microsecondsSinceEpoch
+      'date': DateTime.now().toUtc().microsecondsSinceEpoch,
     };
     final messageText = const JsonEncoder.withIndent('    ').convert(message);
     final msg = await pgp.OpenPGP.encrypt(
