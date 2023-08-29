@@ -80,7 +80,6 @@ Future<void> processTasks(P3p p3p) async {
           destinationPublicKey: ui.publicKey,
           data: EventIntroduce(
             endpoint: si.endpoint,
-            fselm: await ui.fileStore.getFileStoreElement(p3p),
             publickey: p3p.privateKey.toPublic,
             username: si.name ?? 'unknown name [${DateTime.now()}]',
           ).toJson(),

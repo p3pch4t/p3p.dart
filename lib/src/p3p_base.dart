@@ -44,7 +44,11 @@ class P3p {
       fileStorePath: p.join(storePath, 'files'),
       db: db,
     );
-    if (listen) await p3p.listen();
+    try {
+      if (listen) await p3p.listen();
+    } catch (e) {
+      print('listen set to true but failed: $e');
+    }
     if (scheduleTasks) await p3p._scheduleTasks();
     return p3p;
   }

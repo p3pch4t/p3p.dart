@@ -49,7 +49,6 @@ class FileStoreElement {
         publicKey: await p3p.db.getPublicKey(fingerprint: roomFingerprint),
       );
       if (useri != null) {
-        useri.lastIntroduce = DateTime(2000);
         await useri.save(p3p);
       }
     }
@@ -71,7 +70,16 @@ class FileStoreElement {
     sizeBytes = downloadedSizeBytes;
     modifyTime = DateTime.now();
     sha512sum = calcSha512Sum(await file.readAsBytes());
-
+    final useri = await p3p.db.getUserInfo(
+      publicKey: await p3p.db.getPublicKey(fingerprint: roomFingerprint),
+    );
+    await useri?.addEvent(
+      p3p,
+      Event(
+        eventType: EventType.fileMetadata,
+        data: EventFileMetadata(files: [this]).toJson(),
+      ),
+    );
     await save(p3p);
   }
 
@@ -155,8 +163,15 @@ class FileStore {
     final useri = await p3p.db.getUserInfo(
       publicKey: await p3p.db.getPublicKey(fingerprint: roomFingerprint),
     );
+    print('filestore: useri: $useri');
     if (useri == null) return fselm;
-    useri.lastIntroduce = DateTime(2001);
+    await useri.addEvent(
+      p3p,
+      Event(
+        eventType: EventType.fileMetadata,
+        data: EventFileMetadata(files: [fselm]).toJson(),
+      ),
+    );
     await useri.save(p3p);
     return fselm;
   }

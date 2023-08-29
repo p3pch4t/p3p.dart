@@ -31,6 +31,7 @@ class Event {
         EventType.message => 'message',
         EventType.fileRequest => 'file.request',
         EventType.file => 'file',
+        EventType.fileMetadata => 'file.metadata',
         EventType.unimplemented => 'unimplemented',
       },
       'data': data,
@@ -46,6 +47,7 @@ class Event {
         'message' => EventType.message,
         'file.request' => EventType.fileRequest,
         'file' => EventType.file,
+        'file.metadata' => EventType.fileMetadata,
         _ => EventType.unimplemented,
       },
       data: json['data'] as Map<String, dynamic>,
@@ -189,6 +191,8 @@ class Event {
         await processMessage(p3p, userInfo);
       case EventType.fileRequest:
         await processFileRequest(p3p, userInfo);
+      case EventType.fileMetadata:
+        await processFileMetadata(p3p, userInfo);
       case EventType.file:
         await processFile(p3p, userInfo);
       case EventType.unimplemented:
@@ -204,12 +208,14 @@ class Event {
     if (data['publickey'] is! String ||
         data['endpoint'] is! List<dynamic> /* string actually.. */ ||
         data['username'] is! String ||
-        data['filestore'] is! List<dynamic>) {
+        data['filestore'] != null) {
       print('invalid event, ignoring');
       print("publickey: ${data["publickey"].runtimeType}");
       print("endpoint: ${data["endpoint"].runtimeType}");
       print("username: ${data["username"].runtimeType}");
-      print("filestore: ${data["filestore"].runtimeType}");
+      print(
+        "filestore: ${data["filestore"].runtimeType} - ${data['filestore']}",
+      );
       return true;
     }
     final publicKey =
@@ -231,47 +237,6 @@ class Event {
     useri.endpoint.clear();
     useri.endpoint.addAll(Endpoint.fromStringList(eList));
     useri.name = data['username'] as String?;
-    final elms = await useri.fileStore.getFileStoreElement(p3p);
-    print('processing filestore');
-    for (final elm in data['filestore'] as List<dynamic>) {
-      print('${elm['uuid']}');
-      var fileExisted = false;
-      for (final elmStored in elms) {
-        if (elmStored.uuid != elm['uuid']) continue;
-        // print('file existed = true');
-        fileExisted = true;
-        final modTime =
-            DateTime.fromMicrosecondsSinceEpoch(elm['modifyTime'] as int);
-        if (elmStored.modifyTime.isBefore(modTime)) {
-          // print('actually updating');
-          elmStored
-            ..path = elm['path'] as String
-            ..sha512sum = elm['sha512sum'] as String
-            ..sizeBytes = elm['sizeBytes'] as int
-            ..isDeleted = elm['isDeleted'] as bool
-            ..modifyTime = modTime
-            ..requestedLatestVersion = false;
-          await p3p.db.save(elmStored);
-        } else {
-          // print('ignoring because');
-          // print(' - remote:$modTime');
-          // print(' - local :${elmStored.modifyTime}');
-        }
-      }
-      if (!fileExisted) {
-        print('file existed = false');
-
-        await useri.fileStore.putFileStoreElement(
-          p3p,
-          localFile: null,
-          localFileSha512sum: elm['sha512sum'] as String,
-          sizeBytes: elm['sizeBytes'] as int,
-          fileInChatPath: elm['path'] as String,
-          uuid: elm['uuid'] as String,
-        );
-      }
-    }
-    print('processing filestore: done');
 
     await p3p.db.save(useri);
     return true;
@@ -298,9 +263,17 @@ class Event {
         destinationPublicKey: userInfo.publicKey,
         data: EventIntroduce(
           endpoint: selfUser.endpoint,
-          fselm: await userInfo.fileStore.getFileStoreElement(p3p),
           publickey: p3p.privateKey.toPublic,
           username: selfUser.name ?? 'unknown username (ir)',
+        ).toJson(),
+      ),
+    );
+    await userInfo.addEvent(
+      p3p,
+      Event(
+        eventType: EventType.fileMetadata,
+        data: EventFileMetadata(
+          files: await userInfo.fileStore.getFileStoreElement(p3p),
         ).toJson(),
       ),
     );
@@ -372,6 +345,50 @@ class Event {
     return true;
   }
 
+  Future<void> processFileMetadata(P3p p3p, UserInfo userInfo) async {
+    final elms = await userInfo.fileStore.getFileStoreElement(p3p);
+    print('processing filestore');
+    for (final elm in data['files'] as List<dynamic>) {
+      print('${elm['uuid']}');
+      var fileExisted = false;
+      for (final elmStored in elms) {
+        if (elmStored.uuid != elm['uuid']) continue;
+        // print('file existed = true');
+        fileExisted = true;
+        final modTime =
+            DateTime.fromMicrosecondsSinceEpoch(elm['modifyTime'] as int);
+        if (elmStored.modifyTime.isBefore(modTime)) {
+          print('actually updating');
+          elmStored
+            ..path = elm['path'] as String
+            ..sha512sum = elm['sha512sum'] as String
+            ..sizeBytes = elm['sizeBytes'] as int
+            ..isDeleted = elm['isDeleted'] as bool
+            ..modifyTime = modTime
+            ..requestedLatestVersion = false;
+          await p3p.db.save(elmStored);
+        } else {
+          print('ignoring because');
+          print(' - remote:$modTime');
+          print(' - local :${elmStored.modifyTime}');
+        }
+      }
+      if (!fileExisted) {
+        print('file existed = false');
+
+        await userInfo.fileStore.putFileStoreElement(
+          p3p,
+          localFile: null,
+          localFileSha512sum: elm['sha512sum'] as String,
+          sizeBytes: elm['sizeBytes'] as int,
+          fileInChatPath: elm['path'] as String,
+          uuid: elm['uuid'] as String,
+        );
+      }
+    }
+    print('processing filestore: done');
+  }
+
   Future<void> save(P3p p3p) async {
     await p3p.db.save(this);
   }
@@ -384,6 +401,7 @@ enum EventType {
   message,
   fileRequest,
   file,
+  fileMetadata,
 }
 
 class ParsedPayload {
@@ -399,13 +417,11 @@ class EventIntroduce {
   EventIntroduce({
     required this.publickey,
     required this.endpoint,
-    required this.fselm,
     required this.username,
   });
 
   final pgp.PublicKey publickey;
   final List<Endpoint> endpoint;
-  final List<FileStoreElement> fselm;
   final String username;
 
   Map<String, dynamic> toJson() {
@@ -416,8 +432,21 @@ class EventIntroduce {
     return {
       'publickey': publickey.armor(),
       'endpoint': endpoints,
-      'filestore': fselm,
       'username': username,
+    };
+  }
+}
+
+class EventFileMetadata {
+  EventFileMetadata({
+    required this.files,
+  });
+
+  final List<FileStoreElement> files;
+
+  Map<String, dynamic> toJson() {
+    return {
+      'files': files,
     };
   }
 }
