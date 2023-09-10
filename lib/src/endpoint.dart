@@ -54,4 +54,12 @@ class Endpoint {
 
     return list;
   }
+
+  static List<String> toStringList(List<Endpoint> endpointList) {
+    final list = <String>[];
+    for (final element in endpointList) {
+      list.add(element.toString());
+    }
+    return list;
+  }
 }

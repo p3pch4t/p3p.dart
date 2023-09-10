@@ -27,16 +27,17 @@ class Message {
     await p3p.db.save(this);
   }
 
-  static Message? fromEvent(Event evt, bool incoming, String roomFingerprint) {
-    if (evt.eventType != EventType.message) return null;
+  static Message? fromEvent(
+    Event revt,
+    String roomFingerprint, {
+    required bool incoming,
+  }) {
+    if (revt.eventType != EventType.message) return null;
+    final evt = revt.data! as EventMessage;
     return Message(
-      type: switch (evt.data['type'] as String?) {
-        null || 'text' => MessageType.text,
-        'service' => MessageType.service,
-        _ => MessageType.unimplemented,
-      },
-      text: evt.data['text'] as String,
-      uuid: evt.uuid,
+      type: evt.type,
+      text: evt.text,
+      uuid: revt.uuid,
       incoming: incoming,
       roomFingerprint: roomFingerprint,
     );

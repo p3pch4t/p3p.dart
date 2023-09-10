@@ -67,7 +67,7 @@ class P3p {
         ...ReachableRelay.defaultEndpoints,
       ],
     )..name = 'localuser [${privateKey.keyID}]';
-    await useri.save(this);
+    await db.save(useri);
     return useri;
   }
 
@@ -82,13 +82,17 @@ class P3p {
       data: EventMessage(
         text: text,
         type: type,
-      ).toJson(),
+      ),
     );
     await destination.addEvent(this, evt);
     final self = await getSelfInfo();
     await self.addMessage(
       this,
-      Message.fromEvent(evt, false, destination.publicKey.fingerprint)!,
+      Message.fromEvent(
+        evt,
+        destination.publicKey.fingerprint,
+        incoming: false,
+      )!,
     );
     return null;
   }
@@ -112,7 +116,6 @@ class P3p {
         '0.0.0.0',
         3893,
       );
-
       print('${server.address.address}:${server.port}');
     } catch (e) {
       print('failed to start server: $e');
@@ -155,6 +158,8 @@ class P3p {
   /// unresponsive or to not have out of sync events in database.
   List<Future<bool> Function(P3p p3p, Event evt, UserInfo ui)> onEventCallback =
       [];
+
+  /// see: onEventCallback
   Future<bool> callOnEvent(UserInfo userInfo, Event evt) async {
     var toRet = false;
     for (final fn in onEventCallback) {
@@ -173,6 +178,8 @@ class P3p {
   /// using onEventCallback (in most cases)
   List<void Function(P3p p3p, FileStore fs, FileStoreElement fselm)>
       onFileStoreElementCallback = [];
+
+  /// see: onFileStoreElementCallback
   void callOnFileStoreElement(FileStore fs, FileStoreElement fselm) {
     for (final fn in onFileStoreElementCallback) {
       fn.call(this, fs, fselm);

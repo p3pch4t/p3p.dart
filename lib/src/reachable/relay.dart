@@ -80,7 +80,10 @@ class ReachableRelay implements Reachable {
     pgp.PrivateKey privatekey,
   ) async {
     if (pkMap[endpoint.host] == null) {
-      final resp = await relayDio.get(_hostnameRoot(endpoint));
+      final resp = await relayDio.get(
+        _hostnameRoot(endpoint),
+        options: Options(responseType: ResponseType.plain),
+      );
       pkMap[endpoint.host] =
           await pgp.OpenPGP.readPublicKey(resp.data.toString());
       print(pkMap[endpoint.host]?.fingerprint);
@@ -112,7 +115,10 @@ class ReachableRelay implements Reachable {
     try {
       final resp = await relayDio.post(
         httpHostname,
-        options: Options(headers: await _getHeaders(endp, p3p)),
+        options: Options(
+          headers: await _getHeaders(endp, p3p),
+          responseType: ResponseType.plain,
+        ),
         data: message,
       );
       return resp;

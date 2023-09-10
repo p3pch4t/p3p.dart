@@ -26,10 +26,6 @@ class UserInfo {
   FileStore get fileStore => FileStore(roomFingerprint: publicKey.fingerprint);
   Future<void> init(P3p p3p) async {}
 
-  Future<void> save(P3p p3p) async {
-    await p3p.db.save(this);
-  }
-
   Future<List<Message>> getMessages(P3p p3p) async {
     final ret =
         await p3p.db.getMessageList(roomFingerprint: publicKey.fingerprint);
@@ -126,8 +122,8 @@ class UserInfo {
     }
     lastEvent = DateTime.now();
     evt.destinationPublicKey = publicKey;
-    await evt.save(p3p);
-    await save(p3p);
+    await p3p.db.save(evt);
+    await p3p.db.save(this);
   }
 
   static Future<UserInfo?> create(
@@ -142,7 +138,7 @@ class UserInfo {
         ...ReachableRelay.defaultEndpoints,
       ],
     );
-    await ui.save(p3p);
+    await p3p.db.save(ui);
     return ui;
   }
 }

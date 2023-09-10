@@ -10,32 +10,32 @@ final localDio = Dio(BaseOptions(receiveDataWhenStatusError: true));
 
 class ReachableLocal implements Reachable {
   static shell_router.Router getListenRouter(P3p p3p) {
-    final router = shell_router.Router();
-    router.post('/', (shelf.Request request) async {
-      final body = await request.readAsString();
-      final userI = await Event.tryProcess(p3p, body);
-      if (userI == null) {
-        return shelf.Response(
-          404,
-          body: const JsonEncoder.withIndent('    ').convert(
-            [
-              Event(
-                eventType: EventType.introduceRequest,
-                data: EventIntroduceRequest(
-                  endpoint: (await p3p.getSelfInfo()).endpoint,
-                  publickey: p3p.privateKey.toPublic,
+    final router = shell_router.Router()
+      ..post('/', (shelf.Request request) async {
+        final body = await request.readAsString();
+        final userI = await Event.tryProcess(p3p, body);
+        if (userI == null) {
+          return shelf.Response(
+            404,
+            body: const JsonEncoder.withIndent('    ').convert(
+              [
+                Event(
+                  eventType: EventType.introduceRequest,
+                  data: EventIntroduceRequest(
+                    endpoint: (await p3p.getSelfInfo()).endpoint,
+                    publickey: p3p.privateKey.toPublic,
+                  ),
                 ).toJson(),
-              ).toJson(),
-            ],
-          ),
+              ],
+            ),
+          );
+        }
+        return shelf.Response(
+          200,
+          // ignore: deprecated_member_use_from_same_package
+          body: await userI.relayEventsString(p3p),
         );
-      }
-      return shelf.Response(
-        200,
-        // ignore: deprecated_member_use_from_same_package
-        body: await userI.relayEventsString(p3p),
-      );
-    });
+      });
     return router;
   }
 

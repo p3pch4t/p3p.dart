@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:dart_pg/dart_pg.dart';
 import 'package:p3p/p3p.dart';
 import 'package:p3p/src/reachable/relay.dart';
 
@@ -24,9 +23,10 @@ Future<Never> processTasksLoop(P3p p3p) async {
 }
 
 Future<void> processTasks(P3p p3p) async {
+  // print('processTasks');
   final si = await p3p.getSelfInfo();
   final users = await p3p.db.getAllUserInfo();
-  // print('processTasks: $users');
+  // print('processTasks: users.length: ${users.length}');
   for (final ui in users) {
     // print('schedTask: ${ui.id} - ${si.id}');
     if (ui.publicKey.fingerprint == si.publicKey.fingerprint) continue;
@@ -39,7 +39,7 @@ Future<void> processTasks(P3p p3p) async {
           data: EventIntroduceRequest(
             publickey: p3p.privateKey.toPublic,
             endpoint: si.endpoint,
-          ).toJson(),
+          ),
         ),
       );
     }
@@ -51,7 +51,7 @@ Future<void> processTasks(P3p p3p) async {
           felm.shouldFetch == true &&
           felm.requestedLatestVersion == false) {
         felm.requestedLatestVersion = true;
-        await felm.save(p3p);
+        await p3p.db.save(felm);
         await ui.addEvent(
           p3p,
           Event(
@@ -59,7 +59,7 @@ Future<void> processTasks(P3p p3p) async {
             destinationPublicKey: ui.publicKey,
             data: EventFileRequest(
               uuid: felm.uuid,
-            ).toJson(),
+            ),
           ),
         );
       }
@@ -82,7 +82,7 @@ Future<void> processTasks(P3p p3p) async {
             endpoint: si.endpoint,
             publickey: p3p.privateKey.toPublic,
             username: si.name ?? 'unknown name [${DateTime.now()}]',
-          ).toJson(),
+          ),
         ),
       );
     } else {

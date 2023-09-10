@@ -343,7 +343,10 @@ class DatabaseImplDrift extends _$DatabaseImplDrift implements Database {
           destinationPublicKey: await getPublicKey(
             fingerprint: elm.destinationPublicKeyFingerprint,
           ),
-          data: json.decode(utf8.decode(elm.dataJson)) as Map<String, dynamic>,
+          data: await EventData.fromJson(
+            json.decode(utf8.decode(elm.dataJson)) as Map<String, dynamic>,
+            EventType.values[elm.eventTypeIndex],
+          ),
         )..uuid = elm.uuid,
       );
     }

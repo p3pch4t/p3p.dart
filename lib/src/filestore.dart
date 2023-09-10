@@ -42,21 +42,21 @@ class FileStoreElement {
   String roomFingerprint;
   bool requestedLatestVersion = false;
 
-  Future<void> save(P3p p3p, {bool shouldIntroduce = true}) async {
-    if (shouldIntroduce) {
-      modifyTime = DateTime.now();
-      final useri = await p3p.db.getUserInfo(
-        publicKey: await p3p.db.getPublicKey(fingerprint: roomFingerprint),
-      );
-      if (useri != null) {
-        await useri.save(p3p);
-      }
-    }
+  Future<void> saveAndBroadcast(P3p p3p) async {
     if ((p.basename(path).endsWith('xdc') ||
             p.basename(path).endsWith('.jsonp')) &&
         sizeBytes != await file.length()) {
       shouldFetch = true;
     }
+    final user = (await p3p.db.getUserInfo(fingerprint: roomFingerprint))!;
+    await user.addEvent(
+      p3p,
+      Event(
+        eventType: EventType.fileMetadata,
+        data: EventFileMetadata(files: [this]),
+      ),
+    );
+
     await p3p.db.save(this);
     p3p.callOnFileStoreElement(
       FileStore(roomFingerprint: roomFingerprint),
@@ -67,24 +67,39 @@ class FileStoreElement {
   Future<void> updateContent(
     P3p p3p,
   ) async {
+    print('updateContent');
     sizeBytes = downloadedSizeBytes;
     modifyTime = DateTime.now();
     sha512sum = calcSha512Sum(await file.readAsBytes());
     final useri = await p3p.db.getUserInfo(
       publicKey: await p3p.db.getPublicKey(fingerprint: roomFingerprint),
     );
+    if (useri == null) print('useri == null - not announcing update.');
     await useri?.addEvent(
       p3p,
       Event(
         eventType: EventType.fileMetadata,
-        data: EventFileMetadata(files: [this]).toJson(),
+        data: EventFileMetadata(files: [this]),
       ),
     );
-    await save(p3p);
+    await p3p.db.save(this);
   }
 
   static String calcSha512Sum(Uint8List bytes) {
     return crypto.sha512.convert(bytes).toString();
+  }
+
+  static FileStoreElement fromJson(Map<String, dynamic> body) {
+    return FileStoreElement(
+      sha512sum: body['sha512sum'] as String,
+      sizeBytes: body['sizeBytes'] as int,
+      localPath: '',
+      roomFingerprint: '',
+      path: body['path'] as String,
+    )
+      ..uuid = body['uuid'] as String
+      ..modifyTime =
+          DateTime.fromMicrosecondsSinceEpoch(body['modifyTime'] as int);
   }
 
   Map<String, dynamic> toJson() {
@@ -119,7 +134,7 @@ class FileStore {
     required String? localFileSha512sum,
     required int sizeBytes,
     required String fileInChatPath,
-    String? uuid,
+    required String? uuid,
   }) async {
     uuid ??= const Uuid().v4();
     final sha512sum = localFileSha512sum ??
@@ -169,10 +184,10 @@ class FileStore {
       p3p,
       Event(
         eventType: EventType.fileMetadata,
-        data: EventFileMetadata(files: [fselm]).toJson(),
+        data: EventFileMetadata(files: [fselm]),
       ),
     );
-    await useri.save(p3p);
+    await p3p.db.save(useri);
     return fselm;
   }
 }
