@@ -4,28 +4,41 @@ import 'package:p3p/p3p.dart';
 import 'package:p3p/src/reachable/local.dart';
 import 'package:p3p/src/reachable/relay.dart';
 
+/// Information about user, together with helper functions
 class UserInfo {
+  /// You shouldn't use this function, use UserInfo.create instead.
   UserInfo({
     required this.publicKey,
     required this.endpoint,
     this.id = -1,
     this.name,
   });
-  int id = -1;
-  PublicKey publicKey;
-  List<Endpoint> endpoint;
-  Future<List<Event>> getEvents(P3p p3p, PublicKey destination) async {
-    return await p3p.db.getEvents(destinationPublicKey: destination);
-  }
 
+  /// id, -1 means insert to database as new.
+  int id = -1;
+
+  /// PublicKey to identify the user
+  PublicKey publicKey;
+
+  /// Places where we can reach given user
+  List<Endpoint> endpoint;
+
+  /// User's display name, if null we will send introduce.request
   String? name;
+
+  /// When did we *receive or send* message in to/from this user?
   DateTime lastMessage = DateTime.fromMicrosecondsSinceEpoch(0);
+
+  /// When did we send introduce event?
   DateTime lastIntroduce = DateTime.fromMicrosecondsSinceEpoch(0);
+
+  /// When did we send any event?
   DateTime lastEvent = DateTime.fromMicrosecondsSinceEpoch(0);
 
+  /// getter for the given UserInfo's filestore
   FileStore get fileStore => FileStore(roomFingerprint: publicKey.fingerprint);
-  Future<void> init(P3p p3p) async {}
 
+  /// Get all messages and sort them based on when they got received
   Future<List<Message>> getMessages(P3p p3p) async {
     final ret =
         await p3p.db.getMessageList(roomFingerprint: publicKey.fingerprint);
@@ -35,6 +48,7 @@ class UserInfo {
     return ret;
   }
 
+  /// add/update a message *without* broadcasting such change.
   Future<void> addMessage(P3p p3p, Message message) async {
     final msg = await p3p.db
         .getMessage(uuid: message.uuid, roomFingerprint: publicKey.fingerprint);
@@ -47,24 +61,32 @@ class UserInfo {
     await p3p.callOnMessage(message);
   }
 
+  /// get all events for given UserInfo and try to deliver them.
   Future<void> relayEvents(P3p p3p, PublicKey publicKey) async {
+    // fix: issue occured in early versions when introduction wasn't working
+    // properly, now it is fixed but I'm leaving this here just in case - to not
+    // leave user with not functional chat app
     if (endpoint.isEmpty) {
-      print('fixing endpoint by adding ReachableRelay.defaultEndpoints');
-      endpoint = ReachableRelay.defaultEndpoints;
+      // p3p.print('fixing endpoint by adding ReachableRelay.defaultEndpoints');
+      endpoint = ReachableRelay.getDefaultEndpoints(p3p);
     }
-    final evts = await getEvents(p3p, publicKey);
 
+    // 1. Get all events
+    final evts = await p3p.db.getEvents(destinationPublicKey: publicKey);
+
+    // 2. if there aren't any events return
     if (evts.isEmpty) {
       return;
     }
-    // bool canRelayBulk = true;
-    // if (!canRelayBulk) return;
-
-    // for (var evt in evts) {
-    //   print("evts ${evt.id}:${evt.toJson()}");
-    // }
+    // NOTE: this can, and probably should be replaced with json.encode,
+    // but for development and debugging purposes I'll keep it this way
+    // once released we will probably want to encode stuff in a different
+    // way anyway - so I'm leaving this as is.
     final bodyJson = const JsonEncoder.withIndent('    ').convert(evts);
 
+    // Encrypt the whole body with destination's publickey (note:  is part of
+    // the UserInfo object.)
+    //
     final body = await publicKey.encrypt(bodyJson, p3p.privateKey);
 
     for (final endp in endpoint) {
@@ -92,11 +114,13 @@ class UserInfo {
           await p3p.db.remove(elm);
         }
       } else {
-        print(resp);
+        p3p.print(resp);
       }
     }
   }
 
+  /// p.s. not really depracated but I want everybody to know how does it work
+  /// and @Deprecated(...) functions are highlighted in IDEs
   @Deprecated(
       'NOTE: If you call this function event is being set internally as '
       'delivered, it is your problem to hand it over to the user. '
@@ -106,16 +130,16 @@ class UserInfo {
   Future<String> relayEventsString(
     P3p p3p,
   ) async {
-    final evts = await getEvents(p3p, publicKey);
+    final evts = await p3p.db.getEvents(destinationPublicKey: publicKey);
     final bodyJson = const JsonEncoder.withIndent('    ').convert(evts);
     final body = await publicKey.encrypt(bodyJson, p3p.privateKey);
-    final toDel = <int>[];
     for (final elm in evts) {
       await p3p.db.remove(elm);
     }
     return body;
   }
 
+  /// Add event to queue - to send it to the destination later.
   Future<void> addEvent(P3p p3p, Event evt) async {
     if (evt.eventType == EventType.introduce) {
       lastIntroduce = DateTime.now();
@@ -126,6 +150,7 @@ class UserInfo {
     await p3p.db.save(this);
   }
 
+  /// create new UserInfo object, with sane defaults and store it in Database
   static Future<UserInfo?> create(
     P3p p3p,
     String publicKey,
@@ -135,7 +160,7 @@ class UserInfo {
     final ui = UserInfo(
       publicKey: pubKey,
       endpoint: [
-        ...ReachableRelay.defaultEndpoints,
+        ...ReachableRelay.getDefaultEndpoints(p3p),
       ],
     );
     await p3p.db.save(ui);

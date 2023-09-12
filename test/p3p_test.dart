@@ -1,3 +1,5 @@
+// ignore_for_file: avoid_print
+
 import 'package:dart_pg/dart_pg.dart';
 import 'package:p3p/p3p.dart';
 import 'package:p3p/src/database/drift.dart' as db;

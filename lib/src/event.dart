@@ -96,11 +96,16 @@ class Event {
           }
           continue;
         }
+        if (evt is! Map<String, dynamic>) {
+          p3p.print('####### event.dart - Event is NOT Map<String, dynamic> ( '
+              'it is ${evt.runtimeType} )');
+          return null;
+        }
         // Or the events could be fully plaintext.
         final evtType = Event.toEventType(evt['type'] as String);
         if (evtType == EventType.introduce ||
             evtType == EventType.introduceRequest) {
-          final evtp = await Event.fromJson(evt as Map<String, dynamic>);
+          final evtp = await Event.fromJson(evt);
           if (evtp.eventType == EventType.introduce) {
             await evtp.processIntroduce(p3p);
           } else if (evtp.eventType == EventType.introduceRequest) {
@@ -111,7 +116,6 @@ class Event {
         return null;
       }
     } catch (e) {
-      print(' $e');
       // Okay, are not plaintext - this is more than fine.
       final parsed = await Event.parsePayload(payload, p3p);
       ui = parsed.userInfo;
@@ -135,7 +139,7 @@ class Event {
         final evt = await Event.parsePayload(element.toString(), p3p);
         ret.events.addAll(evt.events);
         ret.userInfo = evt.userInfo;
-        print('new event from:${ret.userInfo?.publicKey.fingerprint}');
+        p3p.print('new event from:${ret.userInfo?.publicKey.fingerprint}');
       }
       return ret;
     } catch (e) {
@@ -166,7 +170,7 @@ class Event {
             p3p,
             (evt.data! as EventIntroduce).publickey.armor(),
           ))!,
-          endpoint: [...ReachableRelay.defaultEndpoints],
+          endpoint: [...ReachableRelay.getDefaultEndpoints(p3p)],
         );
         await p3p.db.save(userInfo);
       }
@@ -174,25 +178,26 @@ class Event {
     }
     ret.userInfo = userInfo;
     if (ret.userInfo == null) {
-      print('CRITICAL: ret.userInfo is null, returning but it will fail');
+      p3p.print('CRITICAL: ret.userInfo is null, returning but it will fail');
     }
     return ret;
   }
 
-  Future<void> process(UserInfo userInfo, P3p p3p) async {
+  Future<void> process(UserInfo providedUserInfo, P3p p3p) async {
+    var userInfo = providedUserInfo;
     final nui =
         await p3p.db.getUserInfo(fingerprint: userInfo.publicKey.fingerprint);
     if (nui != null) {
       userInfo = nui;
     }
-    print('processing: - ${userInfo.id} - ${userInfo.name} - $eventType');
+    p3p.print('processing: - ${userInfo.id} - ${userInfo.name} - $eventType');
     const JsonEncoder.withIndent('    ')
         .convert(toJson())
         .split('\n')
         .forEach((element) {
-      print('$eventType: $element');
+      p3p.print('$eventType: $element');
     });
-    print('processing...');
+    p3p.print('processing...');
     if (eventType != EventType.introduce &&
         eventType != EventType.introduceRequest) {
       if (await p3p.callOnEvent(
@@ -205,7 +210,7 @@ class Event {
         return;
       }
     }
-    print('still processing...');
+    p3p.print('still processing...');
 
     switch (eventType) {
       case EventType.introduce:
@@ -223,7 +228,7 @@ class Event {
       case EventType.file:
         await processFile(p3p, userInfo);
       case EventType.unimplemented:
-        print('event: unimplemented');
+        p3p.print('event: unimplemented');
     }
     if (id != 0) {
       await p3p.db.remove(this);
@@ -231,10 +236,9 @@ class Event {
   }
 
   Future<bool> processIntroduce(P3p p3p) async {
-    print('event: introduce');
+    p3p.print('event: introduce');
     final edata = data! as EventIntroduce;
 
-    /// final publicKey = await pgp.OpenPGP.readPublicKey(edata.publickey.armor());
     var useri = await p3p.db.getUserInfo(
       publicKey:
           await p3p.db.getPublicKey(fingerprint: edata.publickey.fingerprint),
@@ -242,7 +246,7 @@ class Event {
     useri ??= UserInfo(
       publicKey: (await PublicKey.create(p3p, edata.publickey.armor()))!,
       endpoint: [
-        ...ReachableRelay.defaultEndpoints,
+        ...ReachableRelay.getDefaultEndpoints(p3p),
       ],
     );
     if (edata.endpoint.isNotEmpty) {
@@ -255,7 +259,7 @@ class Event {
   }
 
   Future<bool> processIntroduceRequest(P3p p3p) async {
-    print('event: introduce.request');
+    p3p.print('event: introduce.request');
 
     final edata = data! as EventIntroduceRequest;
     var userInfo = await p3p.db.getUserInfo(
@@ -265,7 +269,7 @@ class Event {
     final selfUser = await p3p.getSelfInfo();
     userInfo ??= UserInfo(
       publicKey: (await PublicKey.create(p3p, edata.publickey as String))!,
-      endpoint: edata.endpoint..addAll(ReachableRelay.defaultEndpoints),
+      endpoint: edata.endpoint..addAll(ReachableRelay.getDefaultEndpoints(p3p)),
     );
 
     await userInfo.addEvent(
@@ -293,11 +297,14 @@ class Event {
   }
 
   Future<bool> processMessage(P3p p3p, UserInfo userInfo) async {
-    print('event: processMessage');
-    assert(eventType == EventType.message);
+    p3p.print('event: processMessage');
+    assert(
+      eventType == EventType.message,
+      'processMessage - eventType is not EventType.message',
+    );
     await userInfo.addMessage(
       p3p,
-      Message.fromEvent(this, userInfo.publicKey.fingerprint, incoming: true)!,
+      Message.fromEvent(this, userInfo.publicKey.fingerprint, incoming: true),
     );
     return true;
   }
@@ -306,8 +313,11 @@ class Event {
     P3p p3p,
     UserInfo userInfo,
   ) async {
-    print('processFileRequest: ');
-    assert(eventType == EventType.fileRequest);
+    p3p.print('processFileRequest: ');
+    assert(
+      eventType == EventType.fileRequest,
+      'processFileRequest - is not EventType.fileRequest',
+    );
     final freq = data! as EventFileRequest;
     final file = await p3p.db.getFileStoreElement(
       roomFingerprint: userInfo.publicKey.fingerprint,
@@ -335,21 +345,27 @@ class Event {
   }
 
   Future<bool> processFile(P3p p3p, UserInfo userInfo) async {
-    print('processFile: ');
+    p3p.print('processFile: ');
+    assert(
+      eventType == EventType.file,
+      'processFile - is not EventType.file',
+    );
     final incomingFile = data! as EventFile; //EventFile.fromEvent(this);
     final file = await p3p.db.getFileStoreElement(
       roomFingerprint: userInfo.publicKey.fingerprint,
       uuid: incomingFile.uuid,
     );
     if (file == null) {
-      print('processFile: file is null hm');
+      p3p.print('processFile: file is null hm');
       return true;
     }
     if (incomingFile.start != 0 || incomingFile.end != file.sizeBytes) {
-      print("processFile: doesn't start at 0 and doesn't end at sizeBytes");
-      print(
-        'if (${incomingFile.start} != 0 || ${incomingFile.end} != ${file.sizeBytes})',
-      );
+      p3p
+        ..print("processFile: doesn't start at 0 and doesn't end at sizeBytes")
+        ..print(
+          // ignore: lines_longer_than_80_chars
+          'if (${incomingFile.start} != 0 || ${incomingFile.end} != ${file.sizeBytes})',
+        );
     }
     await file.file.writeAsBytes(incomingFile.bytes);
     file.sha512sum = FileStoreElement.calcSha512Sum(incomingFile.bytes);
@@ -359,17 +375,21 @@ class Event {
 
   Future<void> processFileMetadata(P3p p3p, UserInfo userInfo) async {
     final elms = await userInfo.fileStore.getFileStoreElement(p3p);
-    print('processing fileMedatada');
+    p3p.print('processing fileMedatada');
+    assert(
+      eventType == EventType.fileMetadata,
+      'processFileMetadata - is not EventType.fileMetadata',
+    );
     final edata = data! as EventFileMetadata;
     for (final elm in edata.files) {
-      print(elm.uuid);
+      p3p.print(elm.uuid);
       var fileExisted = false;
       for (final elmStored in elms) {
         if (elmStored.uuid != elm.uuid) continue;
         // print('file existed = true');
         fileExisted = true;
         if (elmStored.modifyTime.isBefore(elm.modifyTime)) {
-          print('actually updating');
+          p3p.print('actually updating');
           elmStored
             ..path = elm.path
             ..sha512sum = elm.sha512sum
@@ -379,13 +399,13 @@ class Event {
             ..requestedLatestVersion = false;
           await p3p.db.save(elmStored);
         } else {
-          print('ignoring because');
-          print(' - remote:${elm.modifyTime}');
-          print(' - local :${elmStored.modifyTime}');
+          p3p.print('ignoring because\n'
+              ' - remote:${elm.modifyTime}'
+              ' - local :${elmStored.modifyTime}');
         }
       }
       if (!fileExisted) {
-        print('file existed = false');
+        p3p.print('file existed = false');
 
         await userInfo.fileStore.putFileStoreElement(
           p3p,
@@ -397,7 +417,7 @@ class Event {
         );
       }
     }
-    print('processing filestore: done');
+    p3p.print('processing filestore: done');
   }
 }
 
@@ -432,7 +452,7 @@ abstract class EventData {
       EventType.fileRequest => EventFileRequest.fromJson(data),
       EventType.file => EventFile.fromJson(data),
       EventType.fileMetadata => EventFileMetadata.fromJson(data),
-      EventType.unimplemented => await null
+      EventType.unimplemented => null
     };
   }
 
@@ -465,7 +485,9 @@ class EventIntroduce implements EventData {
 
   static Future<EventIntroduce> fromJson(Map<String, dynamic> data) async {
     final endps = <String>[];
-    data['endpoint'].forEach(endps.add);
+    for (final elm in data['endpoint'] as List<dynamic>) {
+      endps.add(elm.toString());
+    }
 
     return EventIntroduce(
       publickey: await pgp.OpenPGP.readPublicKey(data['publickey'] as String),
@@ -480,6 +502,15 @@ class EventFileMetadata implements EventData {
     required this.files,
   });
 
+  EventFileMetadata.fromJson(
+    Map<String, dynamic> data, {
+    this.files = const [],
+  }) {
+    for (final elm in data['files'] as List<dynamic>) {
+      files.add(FileStoreElement.fromJson(elm as Map<String, dynamic>));
+    }
+  }
+
   final List<FileStoreElement> files;
 
   @override
@@ -487,15 +518,6 @@ class EventFileMetadata implements EventData {
     return {
       'files': files,
     };
-  }
-
-  static EventFileMetadata fromJson(Map<String, dynamic> data) {
-    final evm = EventFileMetadata(files: []);
-    data['files'].forEach(
-      (elm) =>
-          evm.files.add(FileStoreElement.fromJson(elm as Map<String, dynamic>)),
-    );
-    return evm;
   }
 }
 
@@ -520,7 +542,10 @@ class EventIntroduceRequest implements EventData {
     Map<String, dynamic> data,
   ) async {
     final endps = <String>[];
-    data['endpoint'].forEach(endps.add);
+    for (final elm in data['endpoint'] as List<dynamic>) {
+      endps.add(elm.toString());
+    }
+
     return EventIntroduceRequest(
       publickey: await pgp.OpenPGP.readPublicKey(data['publickey'] as String),
       endpoint: Endpoint.fromStringList(endps),
@@ -533,8 +558,20 @@ class EventMessage implements EventData {
     required this.text,
     required this.type,
   });
-  String text;
-  MessageType type;
+
+  EventMessage.fromJson(
+    Map<String, dynamic> data,
+  ) {
+    text = data['text'] as String;
+    type = switch (data['type'] as String) {
+      'text' => MessageType.text,
+      'service' => MessageType.service,
+      'hidden' => MessageType.hidden,
+      _ => MessageType.unimplemented,
+    };
+  }
+  late String text;
+  late MessageType type;
 
   @override
   Map<String, dynamic> toJson() {
@@ -548,18 +585,6 @@ class EventMessage implements EventData {
       },
     };
   }
-
-  static EventMessage fromJson(Map<String, dynamic> data) {
-    return EventMessage(
-      text: data['text'] as String,
-      type: switch (data['type'] as String) {
-        'text' => MessageType.text,
-        'service' => MessageType.service,
-        'hidden' => MessageType.hidden,
-        _ => MessageType.unimplemented,
-      },
-    );
-  }
 }
 
 class EventFileRequest implements EventData {
@@ -568,6 +593,15 @@ class EventFileRequest implements EventData {
     this.start,
     this.end,
   });
+
+  EventFileRequest.fromJson(
+    Map<String, dynamic> data, {
+    this.uuid = '',
+  }) {
+    uuid = data['uuid'] as String;
+    start = data['start'] as int?;
+    end = data['end'] as int?;
+  }
   String uuid;
   int? start;
   int? end;
@@ -579,14 +613,6 @@ class EventFileRequest implements EventData {
       'end': end,
     };
   }
-
-  static EventFileRequest fromJson(Map<String, dynamic> data) {
-    return EventFileRequest(
-      uuid: data['uuid'] as String,
-      start: data['start'] as int?,
-      end: data['end'] as int?,
-    );
-  }
 }
 
 class EventFile implements EventData {
@@ -596,10 +622,17 @@ class EventFile implements EventData {
     required this.end,
     required this.bytes,
   });
-  String uuid;
-  int start;
-  int end;
-  Uint8List bytes;
+
+  EventFile.fromJson(Map<String, dynamic> data) {
+    uuid = data['uuid'] as String;
+    start = data['start'] as int;
+    end = data['end'] as int;
+    bytes = base64.decode(data['bytes'] as String);
+  }
+  late String uuid;
+  late int start;
+  late int end;
+  late Uint8List bytes;
 
   @override
   Map<String, dynamic> toJson() {
@@ -609,14 +642,5 @@ class EventFile implements EventData {
       'end': end,
       'bytes': base64.encode(bytes),
     };
-  }
-
-  static EventFile fromJson(Map<String, dynamic> data) {
-    return EventFile(
-      uuid: data['uuid'] as String,
-      start: data['start'] as int,
-      end: data['end'] as int,
-      bytes: base64.decode(data['bytes'] as String),
-    );
   }
 }

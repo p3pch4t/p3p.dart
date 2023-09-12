@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:dart_pg/dart_pg.dart' as pgp;
+import 'package:logger/logger.dart' as logger;
 import 'package:p3p/src/background.dart';
 import 'package:p3p/src/chat.dart';
 import 'package:p3p/src/database/abstract.dart';
@@ -14,19 +15,44 @@ import 'package:p3p/src/userinfo.dart';
 import 'package:path/path.dart' as p;
 import 'package:shelf/shelf_io.dart' as io;
 
-bool storeIsOpen = false;
-
+/// Main P3p object.
 class P3p {
+  /// You **SHOULD NOT** call it directly, unless you really know what you are
+  /// doing. Instead you should use P3p.createSession function.
   P3p({
     required this.privateKey,
     required this.fileStorePath,
     required this.db,
   });
 
+  /// Holds the unencrypted privatekey to be used for signing events
   final pgp.PrivateKey privateKey;
+
+  /// Base path of where to store files
   final String fileStorePath;
+
+  /// Database driver (example implementation: DatabaseImplDrift)
   final Database db;
 
+  /// Use this instead of print()
+  void print(dynamic element) {
+    _logger.d(element);
+  }
+
+  /// Used internally to log stuff using p3p.print
+  final logger.Logger _logger = logger.Logger(
+    printer:
+        logger.PrettyPrinter(), // Use the PrettyPrinter to format and print log
+  );
+
+  /// createSession loads the P3p object with properly initialized variables and
+  /// background processes.
+  /// storePath - where to store all files required for P3p to function?
+  /// privateKey - armored, encrypted private key
+  /// privateKeyPassword - password to decrypt privatekey
+  /// db - Database driver (example implementation: DatabaseImplDrift)
+  /// scheduleTasks = true - wether to call scheduleTasks()
+  /// listen = true - wether to listen for incoming p2p connections
   static Future<P3p> createSession(
     String storePath,
     String privateKey,
@@ -35,24 +61,24 @@ class P3p {
     bool scheduleTasks = true,
     bool listen = true,
   }) async {
-    print('p3p: using $storePath');
-
     final privkey = await (await pgp.OpenPGP.readPrivateKey(privateKey))
         .decrypt(privateKeyPassword);
     final p3p = P3p(
       privateKey: privkey,
       fileStorePath: p.join(storePath, 'files'),
       db: db,
-    );
+    )..print('p3p: using $storePath');
+
     try {
       if (listen) await p3p.listen();
     } catch (e) {
-      print('listen set to true but failed: $e');
+      p3p.print('listen set to true but failed: $e');
     }
     if (scheduleTasks) await p3p._scheduleTasks();
     return p3p;
   }
 
+  /// Get UserInfo object about owner of this object
   Future<UserInfo> getSelfInfo() async {
     final pubKey = await db.getPublicKey(fingerprint: privateKey.fingerprint);
 
@@ -64,13 +90,17 @@ class P3p {
       publicKey: (await PublicKey.create(this, privateKey.toPublic.armor()))!,
       endpoint: [
         // ...ReachableLocal.defaultEndpoints,
-        ...ReachableRelay.defaultEndpoints,
+        ...ReachableRelay.getDefaultEndpoints(this),
       ],
     )..name = 'localuser [${privateKey.keyID}]';
     await db.save(useri);
     return useri;
   }
 
+  /// Sends message to some user
+  /// destination - UserInfo object of destination
+  /// text - plaintext (markdown) text of the message
+  /// type = MessageType.text - type of the message - used for displaying in ui
   Future<P3pError?> sendMessage(
     UserInfo destination,
     String text, {
@@ -92,23 +122,28 @@ class P3p {
         evt,
         destination.publicKey.fingerprint,
         incoming: false,
-      )!,
+      ),
     );
     return null;
   }
 
+  /// Fetch UserInfo? object by armored publickey
+  /// armored - armored publickey
   Future<UserInfo?> getUserInfoByKey(String armored) async {
     final pubkey = await pgp.OpenPGP.readPublicKey(armored);
-    return await db.getUserInfo(
+    return db.getUserInfo(
       publicKey: await db.getPublicKey(fingerprint: pubkey.fingerprint),
     );
   }
 
+  /// alias for db.getAllUserInfo();
+  @Deprecated('p3p.getUsers() should be replaced by p3p.db.getAllUserInfo()')
   Future<List<UserInfo>> getUsers() async {
     final uiList = await db.getAllUserInfo();
     return uiList;
   }
 
+  /// listen for p2p events on 0.0.0.0:3893, called by default by createSession
   Future<void> listen() async {
     try {
       final server = await io.serve(
@@ -122,29 +157,32 @@ class P3p {
     }
   }
 
+  /// check wether of not scheduleTasks was already started, used by
+  /// _scheduleTasks
   bool isScheduleTasksCalled = false;
+
   Future<void> _scheduleTasks() async {
     if (isScheduleTasksCalled) {
       print('scheduleTasks called more than once. this is unacceptable');
       return;
     }
+    isScheduleTasksCalled = true;
     unawaited(scheduleTasks(this));
   }
 
+  /// List<Function> of all callbacks that will be called on new messages.
   List<void Function(P3p p3p, Message msg, UserInfo user)> onMessageCallback =
       [];
+
+  /// Used internally to call onMessageCallback
   Future<void> callOnMessage(Message msg) async {
     final ui = await msg.getSender(this);
-    if (ui == null) {
-      print('callOnMessage: warn: user with fingerprint ${msg.roomFingerprint} '
-          "doesn't exist. I'll not call any callbacks.");
-      return;
-    }
     for (final fn in onMessageCallback) {
       fn(this, msg, ui);
     }
   }
 
+  /// List<Function> onEventCallback
   /// true - event will be deleted afterwards, while being marked
   /// as executed
   /// false - continue normal exacution
@@ -160,6 +198,7 @@ class P3p {
       [];
 
   /// see: onEventCallback
+  /// Used internally to call onEventCallback
   Future<bool> callOnEvent(UserInfo userInfo, Event evt) async {
     var toRet = false;
     for (final fn in onEventCallback) {

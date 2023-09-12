@@ -13,4 +13,4 @@ export 'src/filestore.dart';
 export 'src/p3p_base.dart';
 export 'src/publickey.dart';
 export 'src/userinfo.dart';
-// TODO: Export any libraries intended for clients of this package.
+// TODO(mrcyjanek): Export any libraries intended for clients of this package.

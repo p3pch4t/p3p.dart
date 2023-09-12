@@ -9,7 +9,6 @@ import 'package:p3p/p3p.dart' as ppp;
 import 'package:p3p/src/chat.dart';
 import 'package:p3p/src/database/abstract.dart';
 import 'package:p3p/src/event.dart';
-import 'package:p3p/src/reachable/relay.dart';
 import 'package:path/path.dart' as p;
 
 part 'drift.g.dart';
@@ -113,14 +112,13 @@ class DatabaseImplDrift extends _$DatabaseImplDrift implements Database {
 
   @override
   Future<void> save<T>(T elm) async {
-    print('[driftdb] save($T elm):');
+    // print('[driftdb] save($T elm):');
     await _save(elm);
   }
 
   Future<void> _save<T>(T elm) async {
     switch (T) {
       case ppp.Message:
-        assert(elm is ppp.Message);
         if (elm is ppp.Message) {
           final typeIndex =
               MessageType.values.indexWhere((elm2) => elm2 == elm.type);
@@ -141,7 +139,6 @@ class DatabaseImplDrift extends _$DatabaseImplDrift implements Database {
         }
         return;
       case ppp.Endpoint:
-        assert(elm is ppp.Endpoint);
         if (elm is ppp.Endpoint) {
           await into(endpoints).insertOnConflictUpdate(
             EndpointsCompanion.insert(
@@ -156,7 +153,6 @@ class DatabaseImplDrift extends _$DatabaseImplDrift implements Database {
         }
         return;
       case ppp.P3pError:
-        assert(elm is ppp.P3pError);
         if (elm is ppp.P3pError) {
           await into(errors).insertOnConflictUpdate(
             ErrorsCompanion.insert(
@@ -169,7 +165,6 @@ class DatabaseImplDrift extends _$DatabaseImplDrift implements Database {
         }
         return;
       case ppp.Event:
-        assert(elm is ppp.Event);
         if (elm is ppp.Event) {
           if (elm.destinationPublicKey != null) {
             await save(elm.destinationPublicKey!);
@@ -190,7 +185,6 @@ class DatabaseImplDrift extends _$DatabaseImplDrift implements Database {
         }
         return;
       case ppp.PublicKey:
-        assert(elm is ppp.PublicKey);
         if (elm is ppp.PublicKey) {
           final pq = PublicKeysCompanion.insert(
             fingerprint: elm.fingerprint,
@@ -206,7 +200,6 @@ class DatabaseImplDrift extends _$DatabaseImplDrift implements Database {
         }
         return;
       case ppp.UserInfo:
-        assert(elm is ppp.UserInfo);
         if (elm is ppp.UserInfo) {
           if (await getPublicKey(fingerprint: elm.publicKey.fingerprint) ==
               null) {
@@ -252,7 +245,6 @@ class DatabaseImplDrift extends _$DatabaseImplDrift implements Database {
         }
         return;
       case ppp.FileStoreElement:
-        assert(elm is ppp.FileStoreElement);
         if (elm is ppp.FileStoreElement) {
           final q = select(fileStoreElements)
             ..where((tbl) => tbl.uuid.equals(elm.uuid))
@@ -522,31 +514,26 @@ class DatabaseImplDrift extends _$DatabaseImplDrift implements Database {
   Future<void> remove<T>(T elm) async {
     switch (T) {
       case ppp.Message:
-        assert(elm is ppp.Message);
         if (elm is ppp.Message) {
           await (delete(messages)..where((tbl) => tbl.id.equals(elm.id))).go();
           return;
         }
       case ppp.Endpoint:
-        assert(elm is ppp.Endpoint);
         if (elm is ppp.Endpoint) {
           await (delete(endpoints)..where((tbl) => tbl.id.equals(elm.id))).go();
           return;
         }
       case ppp.P3pError:
-        assert(elm is ppp.P3pError);
         if (elm is ppp.P3pError) {
           await (delete(errors)..where((tbl) => tbl.id.equals(elm.id))).go();
           return;
         }
       case ppp.Event:
-        assert(elm is ppp.Event);
         if (elm is ppp.Event) {
           await (delete(events)..where((tbl) => tbl.id.equals(elm.id))).go();
           return;
         }
       case ppp.PublicKey:
-        assert(elm is ppp.PublicKey);
         if (elm is ppp.PublicKey) {
           await (delete(publicKeys)
                 ..where((tbl) => tbl.fingerprint.equals(elm.fingerprint)))
@@ -554,13 +541,11 @@ class DatabaseImplDrift extends _$DatabaseImplDrift implements Database {
           return;
         }
       case ppp.UserInfo:
-        assert(elm is ppp.UserInfo);
         if (elm is ppp.UserInfo) {
           await (delete(userInfos)..where((tbl) => tbl.id.equals(elm.id))).go();
           return;
         }
       case ppp.FileStoreElement:
-        assert(elm is ppp.FileStoreElement);
         if (elm is ppp.FileStoreElement) {
           await (delete(fileStoreElements)
                 ..where((tbl) => tbl.id.equals(elm.id)))
@@ -592,7 +577,11 @@ class DatabaseImplDrift extends _$DatabaseImplDrift implements Database {
         ),
       );
     }
-    if (ret.isEmpty) return ReachableRelay.defaultEndpoints;
+    // We can no longer provide an easy way to getUserInfoEndpointList, since
+    // we do not have p3p available here, but we shouldn't need to worry about
+    // it because similar 'if' statememnt is at least in one more spots in this
+    // code.
+    // if (ret.isEmpty) return ReachableRelay.defaultEndpoints;
     return ret;
   }
 

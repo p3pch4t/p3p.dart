@@ -14,10 +14,10 @@ late final P3p p3p;
 void main() async {
   // create a private key for authentication.
   final storedPgp = File(p.join(fileStorePath, 'privkey.pgp'));
-  if (!await storedPgp.exists()) {
+  if (!storedPgp.existsSync()) {
     await storedPgp.create(recursive: true);
     await generatePrivkey(storedPgp);
-    print('Privkey generated and stored in ${storedPgp.path}');
+    p3p.print('Privkey generated and stored in ${storedPgp.path}');
     exit(0);
   }
   // create client session
@@ -34,7 +34,7 @@ void main() async {
   p3p.onMessageCallback.add(_messageCallback);
 
   // Print out pgp key to allow others to message us.. actually.
-  print((await p3p.getSelfInfo()).publicKey.publickey);
+  p3p.print((await p3p.getSelfInfo()).publicKey.publickey);
 
   // start processing new messages
 }
