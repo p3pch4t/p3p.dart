@@ -8,57 +8,30 @@ import 'package:shelf_router/shelf_router.dart' as shell_router;
 
 final _localDio = Dio(BaseOptions(receiveDataWhenStatusError: true));
 
-/// ReachableLocal contains logic about how we can reach p2p members of the
-/// network.
-/// IMPORTANT NOTE:
-/// ReachableLocal only works for local addresses,
-class ReachableLocal implements Reachable {
-  /// Return's listenable router that is used when P3p is initialised with
-  /// listen: true option, or listen() is called manually.
-  static shell_router.Router getListenRouter(P3p p3p) {
-    final router = shell_router.Router()
-      ..post('/', (shelf.Request request) async {
-        final body = await request.readAsString();
-        final userI = await Event.tryProcess(p3p, body);
-        if (userI == null) {
-          return shelf.Response(
-            404,
-            body: const JsonEncoder.withIndent('    ').convert(
-              [
-                Event(
-                  eventType: EventType.introduceRequest,
-                  data: EventIntroduceRequest(
-                    endpoint: (await p3p.getSelfInfo()).endpoint,
-                    publickey: p3p.privateKey.toPublic,
-                  ),
-                ).toJson(),
-              ],
-            ),
-          );
-        }
-        return shelf.Response(
-          200,
-          // ignore: deprecated_member_use_from_same_package
-          body: await userI.relayEventsString(p3p),
-        );
-      });
-    return router;
-  }
+/// ReachableI2p contains logic about how we can reach p2p members of the
+/// network over eepsite addresses.
+class ReachableI2p implements Reachable {
+  /// ReachableI2p is special and requires some configuration before it can be
+  /// usable.
+  ReachableI2p({
+    required this.eepsiteAddress,
+  });
 
-  /// List<Endpoint> that contains endpoints that are accessible by default
-  @Deprecated('use getDefaultEndpoints(P3p) instead')
-  static List<Endpoint> defaultEndpoints = [
-    Endpoint(protocol: 'local', host: '127.0.0.1:3893', extra: ''),
-  ];
+  /// how can we be reached over i2p?
+  String eepsiteAddress;
+
+  // You have probably expected to see getListenRouter here, but this is not
+  // the case. We will use ReachableLocal's http server.
+  // static shell_router.Router? getListenRouter(P3p p3p)
 
   /// Get default endpoints, taking user config into account.
   static List<Endpoint> getDefaultEndpoints(P3p p3p) {
     // ignore: deprecated_member_use_from_same_package
-    return defaultEndpoints;
+    return [];
   }
 
   @override
-  List<String> protocols = ['local', 'locals'];
+  List<String> protocols = ['i2p'];
 
   @override
   Future<P3pError?> reach({
@@ -71,7 +44,7 @@ class ReachableLocal implements Reachable {
       return P3pError(
         code: -1,
         info: 'scheme ${endpoint.protocol} is not '
-            'supported by ReachableLocal ($protocols)',
+            'supported by ReachableI2p ($protocols)',
       );
     }
     final localhostRegexp =

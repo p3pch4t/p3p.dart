@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:p3p/p3p.dart';
+import 'package:p3p/src/reachable/i2p.dart';
 import 'package:p3p/src/reachable/local.dart';
 import 'package:p3p/src/reachable/relay.dart';
 
@@ -88,25 +89,36 @@ class UserInfo {
     // the UserInfo object.)
     //
     final body = await publicKey.encrypt(bodyJson, p3p.privateKey);
+    P3pError? resp = P3pError(code: -1, info: 'No endpoint reached.');
 
     for (final endp in endpoint) {
-      P3pError? resp;
-      switch (endp.protocol) {
-        case 'local' || 'locals':
-          resp = await ReachableLocal().reach(
-            p3p: p3p,
-            endpoint: endp,
-            message: body,
-            publicKey: publicKey,
-          );
-        case 'relay' || 'relays':
-          resp = await ReachableRelay().reach(
-            p3p: p3p,
-            endpoint: endp,
-            message: body,
-            publicKey: publicKey,
-          );
-        default:
+      if (resp != null) {
+        switch (endp.protocol) {
+          case 'local' || 'locals':
+            resp = await p3p.reachableLocal.reach(
+              p3p: p3p,
+              endpoint: endp,
+              message: body,
+              publicKey: publicKey,
+            );
+          case 'relay' || 'relays':
+            resp = await p3p.reachableRelay.reach(
+              p3p: p3p,
+              endpoint: endp,
+              message: body,
+              publicKey: publicKey,
+            );
+          case 'i2p':
+            if (p3p.reachableI2p != null) {
+              resp = await p3p.reachableI2p!.reach(
+                p3p: p3p,
+                endpoint: endp,
+                message: body,
+                publicKey: publicKey,
+              );
+            }
+          default:
+        }
       }
 
       if (resp == null) {

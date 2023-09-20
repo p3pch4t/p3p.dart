@@ -9,6 +9,8 @@ import 'package:p3p/src/error.dart';
 import 'package:p3p/src/event.dart';
 import 'package:p3p/src/filestore.dart';
 import 'package:p3p/src/publickey.dart';
+import 'package:p3p/src/reachable/abstract.dart';
+import 'package:p3p/src/reachable/i2p.dart';
 import 'package:p3p/src/reachable/local.dart';
 import 'package:p3p/src/reachable/relay.dart';
 import 'package:p3p/src/userinfo.dart';
@@ -24,6 +26,15 @@ class P3p {
     required this.fileStorePath,
     required this.db,
   });
+
+  /// Used internally to talk to the i2p network.
+  ReachableI2p? reachableI2p;
+
+  /// Used internally to talk to local peers. Used partially by ReachableI2p.
+  ReachableLocal reachableLocal = ReachableLocal();
+
+  /// User to talk to currently unreachable relays.
+  ReachableRelay reachableRelay = ReachableRelay();
 
   /// Holds the unencrypted privatekey to be used for signing events
   final pgp.PrivateKey privateKey;
@@ -41,8 +52,9 @@ class P3p {
 
   /// Used internally to log stuff using p3p.print
   final logger.Logger _logger = logger.Logger(
-    printer:
-        logger.PrettyPrinter(), // Use the PrettyPrinter to format and print log
+    printer: logger.SimplePrinter(
+      colors: false,
+    ),
   );
 
   /// createSession loads the P3p object with properly initialized variables and
@@ -60,6 +72,7 @@ class P3p {
     Database db, {
     bool scheduleTasks = true,
     bool listen = true,
+    ReachableI2p? reachableI2p,
   }) async {
     final privkey = await (await pgp.OpenPGP.readPrivateKey(privateKey))
         .decrypt(privateKeyPassword);
@@ -67,7 +80,9 @@ class P3p {
       privateKey: privkey,
       fileStorePath: p.join(storePath, 'files'),
       db: db,
-    )..print('p3p: using $storePath');
+    )
+      ..print('p3p: using $storePath')
+      ..reachableI2p = reachableI2p;
 
     try {
       if (listen) await p3p.listen();
