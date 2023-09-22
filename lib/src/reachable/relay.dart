@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'package:dart_pg/dart_pg.dart' as pgp;
 import 'package:dio/dio.dart';
 import 'package:p3p/p3p.dart';
-import 'package:p3p/src/reachable/abstract.dart';
 
 final _relayDio = Dio(BaseOptions(receiveDataWhenStatusError: true));
 

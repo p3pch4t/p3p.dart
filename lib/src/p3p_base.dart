@@ -9,7 +9,6 @@ import 'package:p3p/src/error.dart';
 import 'package:p3p/src/event.dart';
 import 'package:p3p/src/filestore.dart';
 import 'package:p3p/src/publickey.dart';
-import 'package:p3p/src/reachable/abstract.dart';
 import 'package:p3p/src/reachable/i2p.dart';
 import 'package:p3p/src/reachable/local.dart';
 import 'package:p3p/src/reachable/relay.dart';

@@ -2,7 +2,6 @@ import 'dart:convert';
 
 import 'package:dio/dio.dart';
 import 'package:p3p/p3p.dart';
-import 'package:p3p/src/reachable/abstract.dart';
 import 'package:shelf/shelf.dart' as shelf;
 import 'package:shelf_router/shelf_router.dart' as shell_router;
 

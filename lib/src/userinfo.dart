@@ -1,9 +1,6 @@
 import 'dart:convert';
 
 import 'package:p3p/p3p.dart';
-import 'package:p3p/src/reachable/i2p.dart';
-import 'package:p3p/src/reachable/local.dart';
-import 'package:p3p/src/reachable/relay.dart';
 
 /// Information about user, together with helper functions
 class UserInfo {

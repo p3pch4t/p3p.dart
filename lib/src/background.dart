@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:p3p/p3p.dart';
-import 'package:p3p/src/reachable/relay.dart';
 
 /// scheduleTasks - used to run periodic tasks in the library
 /// started automatically if createSession is called with scheduleTasks: true

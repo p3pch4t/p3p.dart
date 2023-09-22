@@ -5,7 +5,6 @@ import 'dart:typed_data';
 
 import 'package:dart_pg/dart_pg.dart' as pgp;
 import 'package:p3p/p3p.dart';
-import 'package:p3p/src/reachable/relay.dart';
 import 'package:uuid/uuid.dart';
 
 class Event {
