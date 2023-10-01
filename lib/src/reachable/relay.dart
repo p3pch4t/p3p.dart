@@ -46,7 +46,7 @@ class ReachableRelay implements Reachable {
   }
 
   @override
-  List<String> protocols = ['relay', 'relays'];
+  List<String> protocols = ['relay', 'relays', 'i2p'];
 
   @override
   Future<P3pError?> reach({
@@ -150,6 +150,8 @@ class ReachableRelay implements Reachable {
           await generateAuth(endp, p3p.privateKey),
         ),
       ),
+      if (endp.protocol == 'i2p')
+        'relay-host': endp.toString().replaceAll('i2p://', 'http://'),
     };
   }
 

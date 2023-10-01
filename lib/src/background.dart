@@ -40,10 +40,10 @@ Future<Never> _processTasksLoop(
 /// processTasks - basically do everything that needs to be done on a periodic
 /// bases.
 Future<void> processTasks(P3p p3p) async {
-  // print('processTasks');
+  print('processTasks');
   final si = await p3p.getSelfInfo();
   final users = await p3p.db.getAllUserInfo();
-  // print('processTasks: users.length: ${users.length}');
+  print('processTasks: users.length: ${users.length}');
   for (final ui in users) {
     // print('schedTask: ${ui.id} - ${si.id}');
     if (ui.publicKey.fingerprint == si.publicKey.fingerprint) continue;
@@ -85,6 +85,7 @@ Future<void> processTasksRelayEventsOrIntroduce(
   final diff = DateTime.now().difference(ui.lastIntroduce).inHours;
   // re-introduce ourself frequently while the app is in development
   // In future this should be changed to like once a day / a week.
+
   if (diff > 6) {
     await ui.addEvent(
       p3p,
@@ -113,7 +114,7 @@ Future<void> processTasksFileRequest(P3p p3p, UserInfo ui, UserInfo si) async {
         felm.shouldFetch == true &&
         felm.requestedLatestVersion == false) {
       felm.requestedLatestVersion = true;
-      await p3p.db.save(felm);
+      felm.id = await p3p.db.save(felm);
       await ui.addEvent(
         p3p,
         Event(

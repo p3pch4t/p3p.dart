@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:dart_pg/dart_pg.dart' as pgp;
+import 'package:isar/isar.dart';
 import 'package:p3p/p3p.dart';
 import 'package:uuid/uuid.dart';
 
@@ -38,8 +39,10 @@ class Event {
   EventType eventType;
   String? encryptPrivkeyArmored;
   String? encryptPrivkeyPassowrd;
+  @ignore // make isar generator happy
   PublicKey? destinationPublicKey;
   // Map<String, dynamic> data;
+  @ignore // make isar generator happy
   EventData? data;
   String uuid = const Uuid().v4();
 
@@ -54,7 +57,7 @@ class Event {
   static Future<Event> fromJson(Map<String, dynamic> json) async {
     return Event(
       eventType: toEventType(json['type'] as String),
-      data: await EventData.fromJson(
+      data: EventData.fromJson(
         json['data'] as Map<String, dynamic>,
         toEventType(json['type'] as String),
       ),
@@ -165,13 +168,13 @@ class Event {
       final evt = await Event.fromJson(elm as Map<String, dynamic>);
       if (userInfo == null && evt.eventType == EventType.introduce) {
         userInfo = UserInfo(
-          publicKey: (await PublicKey.create(
+          publicKey: await PublicKey.create(
             p3p,
             (evt.data! as EventIntroduce).publickey.armor(),
-          ))!,
+          ),
           endpoint: [...ReachableRelay.getDefaultEndpoints(p3p)],
         );
-        await p3p.db.save(userInfo);
+        userInfo.id = await p3p.db.save(userInfo);
       }
       ret.events.add(await Event.fromJson(elm));
     }
@@ -243,7 +246,7 @@ class Event {
           await p3p.db.getPublicKey(fingerprint: edata.publickey.fingerprint),
     );
     useri ??= UserInfo(
-      publicKey: (await PublicKey.create(p3p, edata.publickey.armor()))!,
+      publicKey: await PublicKey.create(p3p, edata.publickey.armor()),
       endpoint: [
         ...ReachableRelay.getDefaultEndpoints(p3p),
       ],
@@ -253,7 +256,7 @@ class Event {
     }
     useri.name = edata.username;
 
-    await p3p.db.save(useri);
+    useri.id = await p3p.db.save(useri);
     return true;
   }
 
@@ -267,7 +270,7 @@ class Event {
     );
     final selfUser = await p3p.getSelfInfo();
     userInfo ??= UserInfo(
-      publicKey: (await PublicKey.create(p3p, edata.publickey as String))!,
+      publicKey: await PublicKey.create(p3p, edata.publickey as String),
       endpoint: edata.endpoint..addAll(ReachableRelay.getDefaultEndpoints(p3p)),
     );
 
@@ -368,7 +371,7 @@ class Event {
     }
     await file.file.writeAsBytes(incomingFile.bytes);
     file.sha512sum = FileStoreElement.calcSha512Sum(incomingFile.bytes);
-    await p3p.db.save(file);
+    file.id = await p3p.db.save(file);
     return true;
   }
 
@@ -396,7 +399,7 @@ class Event {
             ..isDeleted = elm.isDeleted
             ..modifyTime = elm.modifyTime
             ..requestedLatestVersion = false;
-          await p3p.db.save(elmStored);
+          elmStored.id = await p3p.db.save(elmStored);
         } else {
           p3p.print('ignoring because\n'
               ' - remote:${elm.modifyTime}'
@@ -440,13 +443,13 @@ class ParsedPayload {
 }
 
 abstract class EventData {
-  static Future<EventData?> fromJson(
+  static EventData? fromJson(
     Map<String, dynamic> data,
     EventType type,
-  ) async {
+  ) {
     return switch (type) {
-      EventType.introduce => await EventIntroduce.fromJson(data),
-      EventType.introduceRequest => await EventIntroduceRequest.fromJson(data),
+      EventType.introduce => EventIntroduce.fromJson(data),
+      EventType.introduceRequest => EventIntroduceRequest.fromJson(data),
       EventType.message => EventMessage.fromJson(data),
       EventType.fileRequest => EventFileRequest.fromJson(data),
       EventType.file => EventFile.fromJson(data),
@@ -482,14 +485,14 @@ class EventIntroduce implements EventData {
     };
   }
 
-  static Future<EventIntroduce> fromJson(Map<String, dynamic> data) async {
+  static EventIntroduce fromJson(Map<String, dynamic> data) {
     final endps = <String>[];
     for (final elm in data['endpoint'] as List<dynamic>) {
       endps.add(elm.toString());
     }
 
     return EventIntroduce(
-      publickey: await pgp.OpenPGP.readPublicKey(data['publickey'] as String),
+      publickey: pgp.PublicKey.fromArmored(data['publickey'] as String),
       endpoint: Endpoint.fromStringList(endps),
       username: data['username'] as String,
     );
@@ -537,16 +540,16 @@ class EventIntroduceRequest implements EventData {
     };
   }
 
-  static Future<EventIntroduceRequest> fromJson(
+  static EventIntroduceRequest fromJson(
     Map<String, dynamic> data,
-  ) async {
+  ) {
     final endps = <String>[];
     for (final elm in data['endpoint'] as List<dynamic>) {
       endps.add(elm.toString());
     }
 
     return EventIntroduceRequest(
-      publickey: await pgp.OpenPGP.readPublicKey(data['publickey'] as String),
+      publickey: pgp.PublicKey.fromArmored(data['publickey'] as String),
       endpoint: Endpoint.fromStringList(endps),
     );
   }

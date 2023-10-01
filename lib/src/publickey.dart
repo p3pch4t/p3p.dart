@@ -9,6 +9,8 @@ class PublicKey {
     required this.publickey,
   });
 
+  int id = -1;
+
   /// Create publickey from armored string
   static Future<PublicKey?> create(
     P3p p3p,
@@ -21,19 +23,19 @@ class PublicKey {
         fingerprint: publicKey.fingerprint,
         publickey: publicKey.armor(),
       );
-      await p3p.db.save(pubkeyret);
+      pubkeyret.id = await p3p.db.save(pubkeyret);
       return pubkeyret;
     } catch (e) {
-      p3p.print(e);
+      print(e);
     }
     return null;
   }
 
   /// Key's fingerprint
-  String fingerprint;
+  final String fingerprint;
 
   /// armored publickey
-  String publickey;
+  final String publickey;
 
   /// encrypt for this publickey and sign by privatekey
   Future<String> encrypt(String data, pgp.PrivateKey privatekey) async {

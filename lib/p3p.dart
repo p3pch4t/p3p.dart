@@ -3,9 +3,8 @@
 /// More dartdocs go here.
 library;
 
-export 'package:objectbox/objectbox.dart';
-
 export 'src/chat.dart';
+export 'src/database/isar.dart';
 export 'src/endpoint.dart';
 export 'src/error.dart';
 export 'src/event.dart';

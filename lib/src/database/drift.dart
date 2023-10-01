@@ -99,6 +99,7 @@ class FileStoreElements extends Table {
     FileStoreElements,
   ],
 )
+@Deprecated('Replaced with Isar.')
 class DatabaseImplDrift extends _$DatabaseImplDrift implements Database {
   DatabaseImplDrift({required String dbFolder, required this.singularFileStore})
       : super(_openConnection(dbFolder)) {
@@ -111,12 +112,12 @@ class DatabaseImplDrift extends _$DatabaseImplDrift implements Database {
   int get schemaVersion => 1;
 
   @override
-  Future<void> save<T>(T elm) async {
+  Future<int> save<T>(T elm) async {
     // print('[driftdb] save($T elm):');
-    await _save(elm);
+    return await _save(elm);
   }
 
-  Future<void> _save<T>(T elm) async {
+  Future<int> _save<T>(T elm) async {
     switch (T) {
       case ppp.Message:
         if (elm is ppp.Message) {
@@ -132,15 +133,14 @@ class DatabaseImplDrift extends _$DatabaseImplDrift implements Database {
             dateReceived: elm.dateReceived,
           );
           if (elm.id == -1) {
-            await into(messages).insert(iq);
+            return await into(messages).insert(iq);
           } else {
-            await into(messages).insertOnConflictUpdate(iq);
+            return await into(messages).insertOnConflictUpdate(iq);
           }
         }
-        return;
       case ppp.Endpoint:
         if (elm is ppp.Endpoint) {
-          await into(endpoints).insertOnConflictUpdate(
+          return await into(endpoints).insertOnConflictUpdate(
             EndpointsCompanion.insert(
               id: elm.id == -1 ? const Value.absent() : Value(elm.id),
               protocol: elm.protocol,
@@ -151,10 +151,9 @@ class DatabaseImplDrift extends _$DatabaseImplDrift implements Database {
             ),
           );
         }
-        return;
       case ppp.P3pError:
         if (elm is ppp.P3pError) {
-          await into(errors).insertOnConflictUpdate(
+          return await into(errors).insertOnConflictUpdate(
             ErrorsCompanion.insert(
               id: elm.id == -1 ? const Value.absent() : Value(elm.id),
               code: elm.code,
@@ -163,13 +162,12 @@ class DatabaseImplDrift extends _$DatabaseImplDrift implements Database {
             ),
           );
         }
-        return;
       case ppp.Event:
         if (elm is ppp.Event) {
           if (elm.destinationPublicKey != null) {
-            await save(elm.destinationPublicKey!);
+            return await save(elm.destinationPublicKey!);
           }
-          await into(events).insertOnConflictUpdate(
+          return await into(events).insertOnConflictUpdate(
             EventsCompanion.insert(
               id: elm.id == -1 ? const Value.absent() : Value(elm.id),
               eventTypeIndex:
@@ -183,7 +181,6 @@ class DatabaseImplDrift extends _$DatabaseImplDrift implements Database {
             ),
           );
         }
-        return;
       case ppp.PublicKey:
         if (elm is ppp.PublicKey) {
           final pq = PublicKeysCompanion.insert(
@@ -194,16 +191,14 @@ class DatabaseImplDrift extends _$DatabaseImplDrift implements Database {
             ..where((tbl) => tbl.fingerprint.equals(elm.fingerprint));
           final qresult = await q.getSingleOrNull();
           if (qresult == null) {
-            await into(publicKeys).insertOnConflictUpdate(pq);
+            return await into(publicKeys).insertOnConflictUpdate(pq);
           }
-          return;
         }
-        return;
       case ppp.UserInfo:
         if (elm is ppp.UserInfo) {
           if (await getPublicKey(fingerprint: elm.publicKey.fingerprint) ==
               null) {
-            await save(elm.publicKey);
+            elm.publicKey.id = await save(elm.publicKey);
           }
           if (elm.endpoint.isNotEmpty) {
             final q = delete(userInfoEndpoints)
@@ -237,13 +232,13 @@ class DatabaseImplDrift extends _$DatabaseImplDrift implements Database {
             name: Value(elm.name),
           );
           if (ui == null) {
-            await into(userInfos).insert(pi);
+            return await into(userInfos).insert(pi);
           } else {
             final q = update(userInfos);
             await q.replace(pi);
+            return pi.id.value;
           }
         }
-        return;
       case ppp.FileStoreElement:
         if (elm is ppp.FileStoreElement) {
           final q = select(fileStoreElements)
@@ -271,12 +266,12 @@ class DatabaseImplDrift extends _$DatabaseImplDrift implements Database {
           );
 
           if (selm == null) {
-            await into(fileStoreElements).insert(pi);
+            return await into(fileStoreElements).insert(pi);
           } else {
             await update(fileStoreElements).replace(pi);
+            return -1;
           }
         }
-        return;
     }
     throw Exception('$T is not supported by save();');
   }
@@ -298,7 +293,7 @@ class DatabaseImplDrift extends _$DatabaseImplDrift implements Database {
       ret.add(
         ppp.UserInfo(
           id: element.id,
-          publicKey: (await getPublicKey(fingerprint: element.publicKey))!,
+          publicKey: (await getPublicKey(fingerprint: element.publicKey)),
           endpoint: await getUserInfoEndpointList(userInfoId: element.id),
         )
           ..name = element.name
@@ -335,7 +330,7 @@ class DatabaseImplDrift extends _$DatabaseImplDrift implements Database {
           destinationPublicKey: await getPublicKey(
             fingerprint: elm.destinationPublicKeyFingerprint,
           ),
-          data: await EventData.fromJson(
+          data: EventData.fromJson(
             json.decode(utf8.decode(elm.dataJson)) as Map<String, dynamic>,
             EventType.values[elm.eventTypeIndex],
           ),
@@ -501,7 +496,7 @@ class DatabaseImplDrift extends _$DatabaseImplDrift implements Database {
 
     return ppp.UserInfo(
       id: ui.id,
-      publicKey: publicKey!,
+      publicKey: publicKey,
       endpoint: await getUserInfoEndpointList(userInfoId: ui.id),
     )
       ..name = ui.name

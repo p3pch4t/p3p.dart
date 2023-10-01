@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:crypto/crypto.dart' as crypto;
+import 'package:isar/isar.dart';
 import 'package:p3p/p3p.dart';
 import 'package:path/path.dart' as p;
 import 'package:uuid/uuid.dart';
@@ -67,6 +68,7 @@ class FileStoreElement {
   bool shouldFetch = false;
 
   /// File() object pointing to the file.
+  @ignore // make isar happy
   File get file => File(localPath);
 
   /// What is the roomFingerprint that this file belongs to?
@@ -93,7 +95,7 @@ class FileStoreElement {
           ),
         );
 
-        await p3p.db.save(this);
+        id = await p3p.db.save(this);
         p3p.callOnFileStoreElement(
           FileStore(roomFingerprint: roomFingerprint),
           this,
@@ -110,7 +112,7 @@ class FileStoreElement {
         ),
       );
 
-      await p3p.db.save(this);
+      id = await p3p.db.save(this);
       p3p.callOnFileStoreElement(
         FileStore(roomFingerprint: roomFingerprint),
         this,
@@ -150,7 +152,7 @@ class FileStoreElement {
         ),
       );
     }
-    await p3p.db.save(this);
+    id = await p3p.db.save(this);
   }
 
   /// calculate sha512sum of Uing8List
@@ -191,7 +193,7 @@ class FileStore {
     );
   }
 
-  /// Put a FileStoreElement and return it's newer version
+  /// Put a FileStoreElement and return it's newer version or create a new file
   Future<FileStoreElement> putFileStoreElement(
     P3p p3p, {
     required File? localFile,
@@ -200,6 +202,7 @@ class FileStore {
     required String fileInChatPath,
     required String? uuid,
   }) async {
+    // fill the uuid if doesn't exist.
     uuid ??= const Uuid().v4();
     final sha512sum = localFileSha512sum ??
         FileStoreElement.calcSha512Sum(
@@ -223,6 +226,8 @@ class FileStore {
       roomFingerprint: roomFingerprint,
       uuid: uuid,
     );
+    print('${fselm?.roomFingerprint} $roomFingerprint');
+    print('${fselm?.uuid} $uuid');
     fselm ??= FileStoreElement(
       path: '/',
       /* replaced lated by ..path = ... */
@@ -239,7 +244,7 @@ class FileStore {
               fileInChatPath.startsWith('.config'))
       ..path = fileInChatPath
       ..uuid = uuid;
-    await p3p.db.save(fselm);
+    fselm.id = await p3p.db.save(fselm);
     final useri = await p3p.db.getUserInfo(
       publicKey: await p3p.db.getPublicKey(fingerprint: roomFingerprint),
     );
@@ -252,7 +257,7 @@ class FileStore {
         data: EventFileMetadata(files: [fselm]),
       ),
     );
-    await p3p.db.save(useri);
+    useri.id = await p3p.db.save(useri);
     return fselm;
   }
 }
