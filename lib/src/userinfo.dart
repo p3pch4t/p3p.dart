@@ -1,24 +1,31 @@
 import 'dart:convert';
 
+import 'package:isar/isar.dart';
 import 'package:p3p/p3p.dart';
 
 /// Information about user, together with helper functions
 class UserInfo {
   /// You shouldn't use this function, use UserInfo.create instead.
   UserInfo({
-    required this.publicKey,
+    required PublicKey? publicKey,
     required this.endpoint,
     this.id = -1,
     this.name,
-  });
+  }) {
+    if (publicKey != null) {
+      this.publicKey = publicKey;
+    }
+  }
 
   /// id, -1 means insert to database as new.
   int id = -1;
 
   /// PublicKey to identify the user
-  PublicKey publicKey;
+  @ignore // make isar happy
+  late PublicKey publicKey;
 
   /// Places where we can reach given user
+  @ignore // make isar happy
   List<Endpoint> endpoint;
 
   /// User's display name, if null we will send introduce.request
@@ -34,6 +41,7 @@ class UserInfo {
   DateTime lastEvent = DateTime.fromMicrosecondsSinceEpoch(0);
 
   /// getter for the given UserInfo's filestore
+  @ignore // make isar happy
   FileStore get fileStore => FileStore(roomFingerprint: publicKey.fingerprint);
 
   /// Get all messages and sort them based on when they got received
@@ -54,8 +62,8 @@ class UserInfo {
       message.id = msg.id;
     }
     lastMessage = DateTime.now();
-    await p3p.db.save(this);
-    await p3p.db.save(message);
+    id = await p3p.db.save(this);
+    message.id = await p3p.db.save(message);
     await p3p.callOnMessage(message);
   }
 
@@ -68,7 +76,7 @@ class UserInfo {
       // p3p.print('fixing endpoint by adding ReachableRelay.defaultEndpoints');
       endpoint = ReachableRelay.getDefaultEndpoints(p3p);
     }
-
+    print('111');
     // 1. Get all events
     final evts = await p3p.db.getEvents(destinationPublicKey: publicKey);
 
@@ -107,7 +115,14 @@ class UserInfo {
             );
           case 'i2p':
             if (p3p.reachableI2p != null) {
-              resp = await p3p.reachableI2p!.reach(
+              resp = await p3p.reachableI2p?.reach(
+                p3p: p3p,
+                endpoint: endp,
+                message: body,
+                publicKey: publicKey,
+              );
+            } else {
+              resp = await p3p.reachableRelay.reach(
                 p3p: p3p,
                 endpoint: endp,
                 message: body,
@@ -155,16 +170,19 @@ class UserInfo {
     }
     lastEvent = DateTime.now();
     evt.destinationPublicKey = publicKey;
-    await p3p.db.save(evt);
-    await p3p.db.save(this);
+    evt.id = await p3p.db.save(evt);
+    id = await p3p.db.save(this);
   }
 
   /// create new UserInfo object, with sane defaults and store it in Database
+  /// `any` can be anything that may resolve to user, for now this includes:
+  /// - Fingerprint
+  //TODO(mrcyjanek): Add some kind of fingerprint database?
   static Future<UserInfo?> create(
     P3p p3p,
-    String publicKey,
+    String any,
   ) async {
-    final pubKey = await PublicKey.create(p3p, publicKey);
+    final pubKey = await PublicKey.create(p3p, any);
     if (pubKey == null) return null;
     final ui = UserInfo(
       publicKey: pubKey,
@@ -172,7 +190,7 @@ class UserInfo {
         ...ReachableRelay.getDefaultEndpoints(p3p),
       ],
     );
-    await p3p.db.save(ui);
+    ui.id = await p3p.db.save(ui);
     return ui;
   }
 }

@@ -94,20 +94,23 @@ class P3p {
 
   /// Get UserInfo object about owner of this object
   Future<UserInfo> getSelfInfo() async {
-    final pubKey = await db.getPublicKey(fingerprint: privateKey.fingerprint);
-
-    var useri = await db.getUserInfo(
+    var pubKey = await db.getPublicKey(fingerprint: privateKey.fingerprint);
+    if (pubKey != null) {
+      final useri = await db.getUserInfo(
+        publicKey: pubKey,
+      );
+      if (useri != null) return useri;
+    } else {
+      pubKey = await PublicKey.create(this, privateKey.toPublic.armor());
+      pubKey!.id = await db.save(pubKey);
+    }
+    final useri = UserInfo(
       publicKey: pubKey,
-    );
-    if (useri != null) return useri;
-    useri = UserInfo(
-      publicKey: (await PublicKey.create(this, privateKey.toPublic.armor()))!,
       endpoint: [
-        // ...ReachableLocal.defaultEndpoints,
         ...ReachableRelay.getDefaultEndpoints(this),
       ],
     )..name = 'localuser [${privateKey.keyID}]';
-    await db.save(useri);
+    useri.id = await db.save(useri);
     return useri;
   }
 
@@ -185,8 +188,8 @@ class P3p {
   }
 
   /// List<Function> of all callbacks that will be called on new messages.
-  List<void Function(P3p p3p, Message msg, UserInfo user)> onMessageCallback =
-      [];
+  final onMessageCallback =
+      <void Function(P3p p3p, Message msg, UserInfo user)>[];
 
   /// Used internally to call onMessageCallback
   Future<void> callOnMessage(Message msg) async {
@@ -208,8 +211,8 @@ class P3p {
   /// However if new event arrives it will execute normally.
   /// Avoid long blocking of events to not render your peer
   /// unresponsive or to not have out of sync events in database.
-  List<Future<bool> Function(P3p p3p, Event evt, UserInfo ui)> onEventCallback =
-      [];
+  final onEventCallback =
+      <Future<bool> Function(P3p p3p, Event evt, UserInfo ui)>[];
 
   /// see: onEventCallback
   /// Used internally to call onEventCallback
@@ -229,8 +232,8 @@ class P3p {
   ///  - at some other points too
   /// If you want to block file edit or intercept it you should be
   /// using onEventCallback (in most cases)
-  List<void Function(P3p p3p, FileStore fs, FileStoreElement fselm)>
-      onFileStoreElementCallback = [];
+  final onFileStoreElementCallback =
+      <void Function(P3p p3p, FileStore fs, FileStoreElement fselm)>[];
 
   /// see: onFileStoreElementCallback
   void callOnFileStoreElement(FileStore fs, FileStoreElement fselm) {

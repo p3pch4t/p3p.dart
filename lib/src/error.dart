@@ -7,7 +7,7 @@ class P3pError {
   });
 
   /// id, -1 to insert new
-  final int id = -1;
+  int id = -1;
 
   /// what is the error code?
   final int code;
@@ -16,7 +16,7 @@ class P3pError {
   final String info;
 
   /// when did it occur
-  final DateTime errorDate = DateTime.now();
+  DateTime errorDate = DateTime.now();
 
   @override
   String toString() {
