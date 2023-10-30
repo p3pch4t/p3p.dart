@@ -468,9 +468,19 @@ class EventIntroduce implements EventData {
     required this.username,
   });
 
-  final pgp.PublicKey publickey;
-  final List<Endpoint> endpoint;
-  final String username;
+  EventIntroduce.fromJson(Map<String, dynamic> data) {
+    final endps = <String>[];
+    for (final elm in data['endpoint']! as List<dynamic>) {
+      endps.add(elm.toString());
+    }
+    publickey = pgp.PublicKey.fromArmored(data['publickey']! as String);
+    endpoint = Endpoint.fromStringList(endps);
+    username = data['username']! as String;
+  }
+
+  late final pgp.PublicKey publickey;
+  late final List<Endpoint> endpoint;
+  late final String username;
 
   @override
   Map<String, dynamic> toJson() {
@@ -483,19 +493,6 @@ class EventIntroduce implements EventData {
       'endpoint': endpoints,
       'username': username,
     };
-  }
-
-  static EventIntroduce fromJson(Map<String, dynamic> data) {
-    final endps = <String>[];
-    for (final elm in data['endpoint'] as List<dynamic>) {
-      endps.add(elm.toString());
-    }
-
-    return EventIntroduce(
-      publickey: pgp.PublicKey.fromArmored(data['publickey'] as String),
-      endpoint: Endpoint.fromStringList(endps),
-      username: data['username'] as String,
-    );
   }
 }
 
@@ -529,18 +526,7 @@ class EventIntroduceRequest implements EventData {
     required this.endpoint,
   });
 
-  final pgp.PublicKey publickey;
-  final List<Endpoint> endpoint;
-
-  @override
-  Map<String, dynamic> toJson() {
-    return {
-      'publickey': publickey.armor(),
-      'endpoints': Endpoint.toStringList(endpoint),
-    };
-  }
-
-  static EventIntroduceRequest fromJson(
+  EventIntroduceRequest.fromJson(
     Map<String, dynamic> data,
   ) {
     final endps = <String>[];
@@ -548,10 +534,19 @@ class EventIntroduceRequest implements EventData {
       endps.add(elm.toString());
     }
 
-    return EventIntroduceRequest(
-      publickey: pgp.PublicKey.fromArmored(data['publickey'] as String),
-      endpoint: Endpoint.fromStringList(endps),
-    );
+    publickey = pgp.PublicKey.fromArmored(data['publickey'] as String);
+    endpoint = Endpoint.fromStringList(endps);
+  }
+
+  late final pgp.PublicKey publickey;
+  late final List<Endpoint> endpoint;
+
+  @override
+  Map<String, dynamic> toJson() {
+    return {
+      'publickey': publickey.armor(),
+      'endpoints': Endpoint.toStringList(endpoint),
+    };
   }
 }
 

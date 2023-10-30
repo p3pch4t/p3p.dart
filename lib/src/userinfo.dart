@@ -76,7 +76,6 @@ class UserInfo {
       // p3p.print('fixing endpoint by adding ReachableRelay.defaultEndpoints');
       endpoint = ReachableRelay.getDefaultEndpoints(p3p);
     }
-    print('111');
     // 1. Get all events
     final evts = await p3p.db.getEvents(destinationPublicKey: publicKey);
 
@@ -177,7 +176,7 @@ class UserInfo {
   /// create new UserInfo object, with sane defaults and store it in Database
   /// `any` can be anything that may resolve to user, for now this includes:
   /// - Fingerprint
-  //TODO(mrcyjanek): Add some kind of fingerprint database?
+  // TODO(mrcyjanek): Add some kind of fingerprint database?
   static Future<UserInfo?> create(
     P3p p3p,
     String any,

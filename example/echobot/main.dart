@@ -25,6 +25,7 @@ void main() async {
     fileStorePath,
     await storedPgp.readAsString(),
     'passpharse',
+    // ignore: deprecated_member_use_from_same_package
     db.DatabaseImplDrift(
       dbFolder: p.join(fileStorePath, 'db-drift'),
       singularFileStore: false,

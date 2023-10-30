@@ -18,6 +18,7 @@ void main() async {
     '/tmp/p3p_test_store',
     testPk.armor(),
     privateKeyPassword,
+    // ignore: deprecated_member_use_from_same_package
     db.DatabaseImplDrift(
       dbFolder: '/tmp/p3p_test_store',
       singularFileStore: false,

@@ -26,7 +26,7 @@ class PublicKey {
       pubkeyret.id = await p3p.db.save(pubkeyret);
       return pubkeyret;
     } catch (e) {
-      print(e);
+      p3p.print(e);
     }
     return null;
   }

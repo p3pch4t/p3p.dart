@@ -40,10 +40,10 @@ Future<Never> _processTasksLoop(
 /// processTasks - basically do everything that needs to be done on a periodic
 /// bases.
 Future<void> processTasks(P3p p3p) async {
-  print('processTasks');
+  p3p.print('processTasks');
   final si = await p3p.getSelfInfo();
   final users = await p3p.db.getAllUserInfo();
-  print('processTasks: users.length: ${users.length}');
+  p3p.print('processTasks: users.length: ${users.length}');
   for (final ui in users) {
     // print('schedTask: ${ui.id} - ${si.id}');
     if (ui.publicKey.fingerprint == si.publicKey.fingerprint) continue;

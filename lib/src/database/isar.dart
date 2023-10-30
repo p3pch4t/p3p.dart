@@ -1,4 +1,4 @@
-// ignore_for_file: public_member_api_docs, overridden_fields, cascade_invocations
+// ignore_for_file: public_member_api_docs, overridden_fields, cascade_invocations, lines_longer_than_80_chars
 
 import 'dart:convert';
 import 'dart:io';
@@ -362,8 +362,8 @@ class DatabaseImplIsar implements Database {
 
   @override
   Future<int> save<T>(T elm) async {
-    print('[isar] save($elm)');
-    return await _save(elm);
+    // print('[isar] save($elm)');
+    return _save(elm);
   }
 
   Future<int> _save<T>(T elm) async {
@@ -371,7 +371,7 @@ class DatabaseImplIsar implements Database {
       switch (T) {
         case ppp.Message:
           if (elm is ppp.Message) {
-            return await _isar.collection<DBMessage>().put(
+            return _isar.collection<DBMessage>().put(
                   DBMessage(
                     id: elm.id == -1 ? Isar.autoIncrement : elm.id,
                     text: elm.text,
@@ -385,7 +385,7 @@ class DatabaseImplIsar implements Database {
 
         case ppp.Endpoint:
           if (elm is ppp.Endpoint) {
-            return await _isar.collection<DBEndpoint>().put(
+            return _isar.collection<DBEndpoint>().put(
                   DBEndpoint(
                     id: elm.id == -1 ? Isar.autoIncrement : elm.id,
                     protocol: elm.protocol,
@@ -398,7 +398,7 @@ class DatabaseImplIsar implements Database {
           }
         case ppp.P3pError:
           if (elm is ppp.P3pError) {
-            return await _isar.collection<DBP3pError>().put(
+            return _isar.collection<DBP3pError>().put(
                   DBP3pError(
                     id: elm.id == -1 ? Isar.autoIncrement : elm.id,
                     code: elm.code,
@@ -408,7 +408,7 @@ class DatabaseImplIsar implements Database {
           }
         case ppp.Event:
           if (elm is ppp.Event) {
-            return await _isar.collection<DBEvent>().put(
+            return _isar.collection<DBEvent>().put(
                   DBEvent(
                     id: elm.id == -1 ? Isar.autoIncrement : elm.id,
                     eventType: elm.eventType,
@@ -428,7 +428,7 @@ class DatabaseImplIsar implements Database {
           }
         case ppp.PublicKey:
           if (elm is ppp.PublicKey) {
-            return await _isar.collection<DBPublicKey>().put(
+            return _isar.collection<DBPublicKey>().put(
                   DBPublicKey(
                     id: elm.id == -1 ? Isar.autoIncrement : elm.id,
                     fingerprint: elm.fingerprint,
@@ -468,7 +468,7 @@ class DatabaseImplIsar implements Database {
             final endps = await _isar.collection<DBEndpoint>().putAll(
                   endpsRaw,
                 );
-            return await _isar.collection<DBUserInfo>().put(
+            return _isar.collection<DBUserInfo>().put(
                   DBUserInfo(
                     id: elm.id == -1 ? Isar.autoIncrement : elm.id,
                     publicKey: pk,
@@ -486,7 +486,7 @@ class DatabaseImplIsar implements Database {
           }
         case ppp.FileStoreElement:
           if (elm is ppp.FileStoreElement) {
-            return await _isar.collection<DBFileStoreElement>().put(
+            return _isar.collection<DBFileStoreElement>().put(
                   DBFileStoreElement(
                     id: elm.id == -1 ? Isar.autoIncrement : elm.id,
                     sha512sum: elm.sha512sum,

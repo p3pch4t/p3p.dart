@@ -226,8 +226,8 @@ class FileStore {
       roomFingerprint: roomFingerprint,
       uuid: uuid,
     );
-    print('${fselm?.roomFingerprint} $roomFingerprint');
-    print('${fselm?.uuid} $uuid');
+    //print('${fselm?.roomFingerprint} $roomFingerprint');
+    //print('${fselm?.uuid} $uuid');
     fselm ??= FileStoreElement(
       path: '/',
       /* replaced lated by ..path = ... */
