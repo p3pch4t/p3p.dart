@@ -533,7 +533,7 @@ class EventIntroduceRequest implements EventData {
   Map<String, dynamic> toJson() {
     return {
       'publickey': publickey.armor(),
-      'endpoint': Endpoint.toStringList(endpoint),
+      'endpoints': Endpoint.toStringList(endpoint),
     };
   }
 
@@ -623,10 +623,10 @@ class EventFile implements EventData {
   });
 
   EventFile.fromJson(Map<String, dynamic> data) {
-    uuid = data['uuid'] as String;
-    start = data['start'] as int;
-    end = data['end'] as int;
-    bytes = base64.decode(data['bytes'] as String);
+    uuid = data['file_uuid'] as String;
+    start = data['file_start'] as int;
+    end = data['file_end'] as int;
+    bytes = base64.decode(data['file_bytes'] as String);
   }
   late String uuid;
   late int start;
@@ -636,10 +636,10 @@ class EventFile implements EventData {
   @override
   Map<String, dynamic> toJson() {
     return {
-      'uuid': uuid,
-      'start': start,
-      'end': end,
-      'bytes': base64.encode(bytes),
+      'file_uuid': uuid,
+      'file_start': start,
+      'file_end': end,
+      'file_bytes': base64.encode(bytes),
     };
   }
 }
