@@ -49,7 +49,7 @@ class Endpoint {
     final urip = Uri.parse(endpoint);
     return Endpoint(
       protocol: urip.scheme,
-      host: '${urip.host}${urip.path}${urip.query}:${urip.port}',
+      host: '${urip.host}:${urip.port}${urip.path}${urip.query}',
       extra: endpoint.contains('#')
           ? endpoint.substring(endpoint.indexOf('#'))
           : '',
