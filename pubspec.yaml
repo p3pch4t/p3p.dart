@@ -20,6 +20,6 @@ ffigen:
   output: 'lib/src/generated_bindings.dart'
   headers:
     entry-points:
-      - 'vendor/api.h'
+      - 'vendor/api_host.h'
 dependencies:
   ffi: ^2.1.0

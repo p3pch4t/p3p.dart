@@ -9,6 +9,22 @@ enum userInfoType {
   privateInfo,
 }
 
+class DiscoveredUserInfo {
+  DiscoveredUserInfo(
+    this._p3p, {
+    required this.name,
+    required this.bio,
+    required this.publickey,
+    required this.endpoint,
+  });
+  final P3p _p3p;
+
+  final String name;
+  final String bio;
+  final String publickey;
+  final String endpoint;
+}
+
 class UserInfo {
   UserInfo(
     this._p3p,
@@ -58,6 +74,8 @@ class UserInfo {
         userInfoType.userInfo =>
           _p3p.SetUserInfoEndpoint(intId, endpoint.toNativeUtf8().cast<Char>()),
       };
+
+  bool forceSendIntroduceEvent() => _p3p.ForceSendIntroduceEvent(intId) == 1;
 }
 
 class PublicKey {

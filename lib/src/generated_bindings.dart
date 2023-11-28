@@ -94,17 +94,52 @@ class P3pgo {
 
   int AddUserByPublicKey(
     ffi.Pointer<ffi.Char> publickey,
+    ffi.Pointer<ffi.Char> username,
+    ffi.Pointer<ffi.Char> endpoint,
   ) {
     return _AddUserByPublicKey(
       publickey,
+      username,
+      endpoint,
     );
   }
 
-  late final _AddUserByPublicKeyPtr =
-      _lookup<ffi.NativeFunction<GoInt Function(ffi.Pointer<ffi.Char>)>>(
-          'AddUserByPublicKey');
-  late final _AddUserByPublicKey =
-      _AddUserByPublicKeyPtr.asFunction<int Function(ffi.Pointer<ffi.Char>)>();
+  late final _AddUserByPublicKeyPtr = _lookup<
+      ffi.NativeFunction<
+          GoInt Function(ffi.Pointer<ffi.Char>, ffi.Pointer<ffi.Char>,
+              ffi.Pointer<ffi.Char>)>>('AddUserByPublicKey');
+  late final _AddUserByPublicKey = _AddUserByPublicKeyPtr.asFunction<
+      int Function(ffi.Pointer<ffi.Char>, ffi.Pointer<ffi.Char>,
+          ffi.Pointer<ffi.Char>)>();
+
+  int ForceSendIntroduceEvent(
+    int uid,
+  ) {
+    return _ForceSendIntroduceEvent(
+      uid,
+    );
+  }
+
+  late final _ForceSendIntroduceEventPtr =
+      _lookup<ffi.NativeFunction<GoUint8 Function(GoInt)>>(
+          'ForceSendIntroduceEvent');
+  late final _ForceSendIntroduceEvent =
+      _ForceSendIntroduceEventPtr.asFunction<int Function(int)>();
+
+  ffi.Pointer<ffi.Char> GetUserDetailsByURL(
+    ffi.Pointer<ffi.Char> url,
+  ) {
+    return _GetUserDetailsByURL(
+      url,
+    );
+  }
+
+  late final _GetUserDetailsByURLPtr = _lookup<
+      ffi.NativeFunction<
+          ffi.Pointer<ffi.Char> Function(
+              ffi.Pointer<ffi.Char>)>>('GetUserDetailsByURL');
+  late final _GetUserDetailsByURL = _GetUserDetailsByURLPtr.asFunction<
+      ffi.Pointer<ffi.Char> Function(ffi.Pointer<ffi.Char>)>();
 
   ffi.Pointer<ffi.Char> GetChatMessages(
     int UserInfoID,

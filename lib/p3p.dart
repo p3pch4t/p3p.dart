@@ -7,6 +7,7 @@ import 'dart:convert';
 
 import 'package:p3p/src/generated_bindings.dart';
 import 'package:p3p/src/message.dart';
+import 'package:p3p/src/switch_platform.dart';
 import 'package:p3p/src/userinfo.dart';
 import 'package:ffi/ffi.dart';
 import 'dart:ffi';
@@ -15,14 +16,7 @@ export 'src/userinfo.dart';
 export 'src/message.dart';
 
 /// getP3pGo - start p3pgo library, and return it's object.
-P3p getP3p(String? libPath) {
-  if (libPath == null) {
-    return P3p(
-      DynamicLibrary.open(
-        '/home/user/go/src/git.mrcyjanek.net/p3pch4t/p3pgo/build/api.so',
-      ),
-    );
-  }
+Future<P3p> getP3p(String libPath) async {
   return P3p(DynamicLibrary.open(libPath));
 }
 
@@ -33,17 +27,40 @@ class P3p extends P3pgo {
 
   UserInfo getSelfInfo() => UserInfo(this, userInfoType.privateInfo, 0);
 
-  UserInfo addUserFromPublicKey(String publicKey) {
+  UserInfo addUserFromPublicKey(
+    String publicKey,
+    String name,
+    String endpoint,
+  ) {
     final publickeyRaw = publicKey.toNativeUtf8().cast<Char>();
-    final uid = AddUserByPublicKey(publickeyRaw);
+    final nameRaw = name.toNativeUtf8().cast<Char>();
+    final endpointRaw = endpoint.toNativeUtf8().cast<Char>();
+    final uid = AddUserByPublicKey(publickeyRaw, nameRaw, endpointRaw);
     calloc.free(publickeyRaw);
+    calloc.free(nameRaw);
+    calloc.free(endpointRaw);
     return UserInfo(this, userInfoType.userInfo, uid);
+  }
+
+  DiscoveredUserInfo? getUserDetailsByURL(String url) {
+    final urlRaw = url.toNativeUtf8().cast<Char>();
+    final duiStr = GetUserDetailsByURL(urlRaw).cast<Utf8>().toDartString();
+    calloc.free(urlRaw);
+    final j = json.decode(duiStr) as Map<String, dynamic>?;
+    if (j?['name'] == null) return null;
+    return DiscoveredUserInfo(
+      this,
+      name: j!['name'] as String,
+      bio: j['bio'] as String,
+      publickey: j['publickey'] as String,
+      endpoint: j['endpoint'] as String,
+    );
   }
 
   Iterable<Message> getMessages(UserInfo userInfo) {
     final result = GetChatMessages(userInfo.id).cast<Utf8>().toDartString();
     print('result: $result');
-    final idList = json.decode(result) as List<dynamic>;
+    final idList = json.decode(result) as List<dynamic>? ?? [];
     final mids = <Message>[];
     for (final mid in idList) {
       mids.add(Message(this, mid as int));
@@ -84,7 +101,7 @@ class P3p extends P3pgo {
   Iterable<UserInfo> getAllUserInfo() {
     final result = GetAllUserInfo().cast<Utf8>().toDartString();
 
-    final idList = json.decode(result) as List<dynamic>;
+    final idList = json.decode(result) as List<dynamic>? ?? [];
     final uis = <UserInfo>[];
     for (final uid in idList) {
       uis.add(UserInfo(this, userInfoType.userInfo, uid as int));
