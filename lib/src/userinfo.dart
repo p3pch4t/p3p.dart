@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:ffi';
 import 'dart:io';
 
@@ -60,7 +61,16 @@ class UserInfo {
           _p3p.GetUserInfoUsername(intId).cast<Utf8>().toDartString(),
       };
 
-  FileStore get fileStore => throw UnimplementedError();
+  FileStore get fileStore {
+    final result =
+        _p3p.GetUserInfoFileStoreElements(intId).cast<Utf8>().toDartString();
+    final idList = json.decode(result) as List<dynamic>? ?? [];
+    final fseids = <FileStoreElement>[];
+    for (final fseid in idList) {
+      fseids.add(FileStoreElement(_p3p, intId: fseid as int));
+    }
+    return FileStore(files: fseids);
+  }
 
   String get endpoint => switch (_type) {
         userInfoType.privateInfo =>
@@ -88,20 +98,48 @@ class PublicKey {
   final String armored;
 }
 
-class FileStore {}
+class FileStore {
+  FileStore({
+    required this.files,
+  });
+  List<FileStoreElement> files;
+}
 
 class FileStoreElement {
-  String get localPath => throw UnimplementedError();
-  int get downloadedSizeBytes => throw UnimplementedError();
-  int get sizeBytes => throw UnimplementedError();
-  File get file => throw UnimplementedError();
+  FileStoreElement(
+    this._p3p, {
+    required this.intId,
+  });
+  final P3p _p3p;
+  final int intId;
+  String get localPath =>
+      _p3p.GetFileStoreElementLocalPath(intId).cast<Utf8>().toDartString();
+  bool get isDownloaded => _p3p.GetFileStoreElementIsDownloaded(intId) == 1;
+  int get sizeBytes => _p3p.GetFileStoreElementSizeBytes(intId);
+  File get file => File(localPath);
 
-  String get path => throw UnimplementedError();
-  set path(String path) => throw UnimplementedError();
+  String get path =>
+      _p3p.GetFileStoreElementPath(intId).cast<Utf8>().toDartString();
+  set path(String path) {
+    final newPath = path.toNativeUtf8().cast<Char>();
+    _p3p.SetFileStoreElementPath(intId, newPath);
+    calloc.free(newPath);
+  }
 
-  bool get isDeleted => throw UnimplementedError();
-  set isDeleted(bool? isDeleted) => throw UnimplementedError();
+  bool get isDeleted => _p3p.GetFileStoreElementIsDeleted(intId) == 1;
+  set isDeleted(bool? isDeleted) =>
+      _p3p.SetFileStoreElementIsDeleted(intId, isDeleted ?? true ? 1 : 0);
 
-  bool get shouldFetch => throw UnimplementedError();
-  set shouldFetch(bool? shouldFetch) => throw UnimplementedError();
+  bool get shouldFetch => true;
 }
+
+	// InternalKeyID string `json:"-"`
+	// Uuid          string `json:"uuid,omitempty"`
+	// //Path - is the in chat path, eg /Apps/Calendar.xdc
+	// Path string `json:"path,omitempty"`
+	// //LocalPath - is the filesystem path
+	// LocalPath string `json:"-"`
+	// Sha512sum string `json:"sha512sum,omitempty"`
+	// SizeBytes int64  `json:"sizeBytes,omitempty"`
+	// //	IsDeleted  bool   `json:"isDeleted,omitempty"`
+	// ModifyTime int64 `json:"modifyTime,omitempty"`

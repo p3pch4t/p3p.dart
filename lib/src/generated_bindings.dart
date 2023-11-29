@@ -141,19 +141,19 @@ class P3pgo {
   late final _GetUserDetailsByURL = _GetUserDetailsByURLPtr.asFunction<
       ffi.Pointer<ffi.Char> Function(ffi.Pointer<ffi.Char>)>();
 
-  ffi.Pointer<ffi.Char> GetChatMessages(
+  ffi.Pointer<ffi.Char> GetUserInfoMessages(
     int UserInfoID,
   ) {
-    return _GetChatMessages(
+    return _GetUserInfoMessages(
       UserInfoID,
     );
   }
 
-  late final _GetChatMessagesPtr =
+  late final _GetUserInfoMessagesPtr =
       _lookup<ffi.NativeFunction<ffi.Pointer<ffi.Char> Function(GoInt)>>(
-          'GetChatMessages');
-  late final _GetChatMessages =
-      _GetChatMessagesPtr.asFunction<ffi.Pointer<ffi.Char> Function(int)>();
+          'GetUserInfoMessages');
+  late final _GetUserInfoMessages =
+      _GetUserInfoMessagesPtr.asFunction<ffi.Pointer<ffi.Char> Function(int)>();
 
   ffi.Pointer<ffi.Char> GetMessageType(
     int msgID,
@@ -410,6 +410,141 @@ class P3pgo {
       'SendMessage');
   late final _SendMessage =
       _SendMessagePtr.asFunction<void Function(int, ffi.Pointer<ffi.Char>)>();
+
+  int CreateFileStoreElement(
+    int uid,
+    ffi.Pointer<ffi.Char> fileInChatPath,
+    ffi.Pointer<ffi.Char> localFilePath,
+  ) {
+    return _CreateFileStoreElement(
+      uid,
+      fileInChatPath,
+      localFilePath,
+    );
+  }
+
+  late final _CreateFileStoreElementPtr = _lookup<
+      ffi.NativeFunction<
+          GoInt64 Function(GoUint, ffi.Pointer<ffi.Char>,
+              ffi.Pointer<ffi.Char>)>>('CreateFileStoreElement');
+  late final _CreateFileStoreElement = _CreateFileStoreElementPtr.asFunction<
+      int Function(int, ffi.Pointer<ffi.Char>, ffi.Pointer<ffi.Char>)>();
+
+  ffi.Pointer<ffi.Char> GetFileStoreElementLocalPath(
+    int fseId,
+  ) {
+    return _GetFileStoreElementLocalPath(
+      fseId,
+    );
+  }
+
+  late final _GetFileStoreElementLocalPathPtr =
+      _lookup<ffi.NativeFunction<ffi.Pointer<ffi.Char> Function(GoUint)>>(
+          'GetFileStoreElementLocalPath');
+  late final _GetFileStoreElementLocalPath = _GetFileStoreElementLocalPathPtr
+      .asFunction<ffi.Pointer<ffi.Char> Function(int)>();
+
+  int GetFileStoreElementIsDownloaded(
+    int fseId,
+  ) {
+    return _GetFileStoreElementIsDownloaded(
+      fseId,
+    );
+  }
+
+  late final _GetFileStoreElementIsDownloadedPtr =
+      _lookup<ffi.NativeFunction<GoUint8 Function(GoUint)>>(
+          'GetFileStoreElementIsDownloaded');
+  late final _GetFileStoreElementIsDownloaded =
+      _GetFileStoreElementIsDownloadedPtr.asFunction<int Function(int)>();
+
+  int GetFileStoreElementSizeBytes(
+    int fseId,
+  ) {
+    return _GetFileStoreElementSizeBytes(
+      fseId,
+    );
+  }
+
+  late final _GetFileStoreElementSizeBytesPtr =
+      _lookup<ffi.NativeFunction<GoInt64 Function(GoUint)>>(
+          'GetFileStoreElementSizeBytes');
+  late final _GetFileStoreElementSizeBytes =
+      _GetFileStoreElementSizeBytesPtr.asFunction<int Function(int)>();
+
+  ffi.Pointer<ffi.Char> GetFileStoreElementPath(
+    int fseId,
+  ) {
+    return _GetFileStoreElementPath(
+      fseId,
+    );
+  }
+
+  late final _GetFileStoreElementPathPtr =
+      _lookup<ffi.NativeFunction<ffi.Pointer<ffi.Char> Function(GoUint)>>(
+          'GetFileStoreElementPath');
+  late final _GetFileStoreElementPath = _GetFileStoreElementPathPtr.asFunction<
+      ffi.Pointer<ffi.Char> Function(int)>();
+
+  void SetFileStoreElementPath(
+    int fseId,
+    ffi.Pointer<ffi.Char> newPath,
+  ) {
+    return _SetFileStoreElementPath(
+      fseId,
+      newPath,
+    );
+  }
+
+  late final _SetFileStoreElementPathPtr = _lookup<
+          ffi.NativeFunction<ffi.Void Function(GoUint, ffi.Pointer<ffi.Char>)>>(
+      'SetFileStoreElementPath');
+  late final _SetFileStoreElementPath = _SetFileStoreElementPathPtr.asFunction<
+      void Function(int, ffi.Pointer<ffi.Char>)>();
+
+  int GetFileStoreElementIsDeleted(
+    int fseId,
+  ) {
+    return _GetFileStoreElementIsDeleted(
+      fseId,
+    );
+  }
+
+  late final _GetFileStoreElementIsDeletedPtr =
+      _lookup<ffi.NativeFunction<GoUint8 Function(GoUint)>>(
+          'GetFileStoreElementIsDeleted');
+  late final _GetFileStoreElementIsDeleted =
+      _GetFileStoreElementIsDeletedPtr.asFunction<int Function(int)>();
+
+  void SetFileStoreElementIsDeleted(
+    int fseId,
+    int isDeleted,
+  ) {
+    return _SetFileStoreElementIsDeleted(
+      fseId,
+      isDeleted,
+    );
+  }
+
+  late final _SetFileStoreElementIsDeletedPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(GoUint, GoUint8)>>(
+          'SetFileStoreElementIsDeleted');
+  late final _SetFileStoreElementIsDeleted =
+      _SetFileStoreElementIsDeletedPtr.asFunction<void Function(int, int)>();
+
+  ffi.Pointer<ffi.Char> GetUserInfoFileStoreElements(
+    int UserInfoID,
+  ) {
+    return _GetUserInfoFileStoreElements(
+      UserInfoID,
+    );
+  }
+
+  late final _GetUserInfoFileStoreElementsPtr =
+      _lookup<ffi.NativeFunction<ffi.Pointer<ffi.Char> Function(GoInt)>>(
+          'GetUserInfoFileStoreElements');
+  late final _GetUserInfoFileStoreElements = _GetUserInfoFileStoreElementsPtr
+      .asFunction<ffi.Pointer<ffi.Char> Function(int)>();
 }
 
 final class max_align_t extends ffi.Opaque {}
@@ -442,5 +577,7 @@ final class GoSlice extends ffi.Struct {
 typedef GoInt = GoInt64;
 typedef GoInt64 = ffi.LongLong;
 typedef GoUint8 = ffi.UnsignedChar;
+typedef GoUint = GoUint64;
+typedef GoUint64 = ffi.UnsignedLongLong;
 
 const int NULL = 0;

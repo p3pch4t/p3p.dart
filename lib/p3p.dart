@@ -4,6 +4,7 @@
 library;
 
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:p3p/src/generated_bindings.dart';
 import 'package:p3p/src/message.dart';
@@ -58,8 +59,7 @@ class P3p extends P3pgo {
   }
 
   Iterable<Message> getMessages(UserInfo userInfo) {
-    final result = GetChatMessages(userInfo.id).cast<Utf8>().toDartString();
-    print('result: $result');
+    final result = GetUserInfoMessages(userInfo.id).cast<Utf8>().toDartString();
     final idList = json.decode(result) as List<dynamic>? ?? [];
     final mids = <Message>[];
     for (final mid in idList) {
@@ -84,19 +84,18 @@ class P3p extends P3pgo {
   void updateFileContent(FileStoreElement updateElm) =>
       throw UnimplementedError();
 
-  Iterable<FileStoreElement> getFileStoreElements(UserInfo chatroom) =>
-      throw UnimplementedError();
-
-  FileStoreElement putFileStoreElement(
-    UserInfo chatroom, {
-    required localFile,
-    required localFileSha512sum,
-    required int sizeBytes,
+  FileStoreElement createFileStoreElement(
+    UserInfo ui, {
+    required String localFilePath,
     required String fileInChatPath,
-    required uuid,
-    required bool shouldFetch,
-  }) =>
-      throw UnimplementedError();
+  }) {
+    final ficp = fileInChatPath.toNativeUtf8().cast<Char>();
+    final lfp = localFilePath.toNativeUtf8().cast<Char>();
+    final fseid = CreateFileStoreElement(ui.id, ficp, lfp);
+    calloc.free(ficp);
+    calloc.free(lfp);
+    return FileStoreElement(this, intId: fseid);
+  }
 
   Iterable<UserInfo> getAllUserInfo() {
     final result = GetAllUserInfo().cast<Utf8>().toDartString();
