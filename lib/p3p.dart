@@ -81,9 +81,6 @@ class P3p extends P3pgo {
     calloc.free(log);
   }
 
-  void updateFileContent(FileStoreElement updateElm) =>
-      throw UnimplementedError();
-
   FileStoreElement createFileStoreElement(
     UserInfo ui, {
     required String localFilePath,

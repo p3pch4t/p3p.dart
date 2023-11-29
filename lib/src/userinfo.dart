@@ -131,15 +131,21 @@ class FileStoreElement {
       _p3p.SetFileStoreElementIsDeleted(intId, isDeleted ?? true ? 1 : 0);
 
   bool get shouldFetch => true;
+
+  void updateFileContent() {
+    // We don't need this function currently.
+    // Why you may ask - simply because p3pgo already checks for filesystem
+    // changes and automagically updates the content.
+  }
 }
 
-	// InternalKeyID string `json:"-"`
-	// Uuid          string `json:"uuid,omitempty"`
-	// //Path - is the in chat path, eg /Apps/Calendar.xdc
-	// Path string `json:"path,omitempty"`
-	// //LocalPath - is the filesystem path
-	// LocalPath string `json:"-"`
-	// Sha512sum string `json:"sha512sum,omitempty"`
-	// SizeBytes int64  `json:"sizeBytes,omitempty"`
-	// //	IsDeleted  bool   `json:"isDeleted,omitempty"`
-	// ModifyTime int64 `json:"modifyTime,omitempty"`
+// InternalKeyID string `json:"-"`
+// Uuid          string `json:"uuid,omitempty"`
+// //Path - is the in chat path, eg /Apps/Calendar.xdc
+// Path string `json:"path,omitempty"`
+// //LocalPath - is the filesystem path
+// LocalPath string `json:"-"`
+// Sha512sum string `json:"sha512sum,omitempty"`
+// SizeBytes int64  `json:"sizeBytes,omitempty"`
+// //	IsDeleted  bool   `json:"isDeleted,omitempty"`
+// ModifyTime int64 `json:"modifyTime,omitempty"`
