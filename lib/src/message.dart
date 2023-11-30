@@ -9,21 +9,22 @@ enum MessageType {
 }
 
 class Message {
-  Message(this.p3p, this.intId);
+  Message(this._p3p, this.intId);
 
-  P3p p3p;
+  final P3p _p3p;
   int intId;
 
-  MessageType get type =>
-      switch (p3p.GetMessageType(intId).cast<Utf8>().toDartString()) {
+  MessageType get type => switch (
+          _p3p.GetMessageType(_p3p.piId, intId).cast<Utf8>().toDartString()) {
         'text' => MessageType.text,
         'service' => MessageType.service,
         'unsupported' || _ => MessageType.unsupported,
       };
 
-  String get text => p3p.GetMessageText(intId).cast<Utf8>().toDartString();
+  String get text =>
+      _p3p.GetMessageText(_p3p.piId, intId).cast<Utf8>().toDartString();
   DateTime get dateReceived => DateTime.fromMicrosecondsSinceEpoch(
-        p3p.GetMessageReceivedTimestamp(intId),
+        _p3p.GetMessageReceivedTimestamp(_p3p.piId, intId),
       );
-  bool get incoming => p3p.GetMessageIsIncoming(intId) == 1;
+  bool get incoming => _p3p.GetMessageIsIncoming(_p3p.piId, intId) == 1;
 }

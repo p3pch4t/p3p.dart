@@ -5,6 +5,7 @@ library;
 
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
 
 import 'package:p3p/src/generated_bindings.dart';
 import 'package:p3p/src/message.dart';
@@ -24,7 +25,21 @@ Future<P3p> getP3p(String libPath) async {
 class P3p extends P3pgo {
   P3p(super.dynamicLibrary);
 
-  void initStore(String path) => InitStore(path.toNativeUtf8().cast<Char>());
+  int? _piId;
+  int get piId {
+    if (_piId == null) {
+      throw UnimplementedError('Did you forget to call .initStore()?');
+    }
+    return _piId!;
+  }
+
+  void initStore(String path, String accountName) {
+    final path_ = path.toNativeUtf8().cast<Char>();
+    final accountName_ = accountName.toNativeUtf8().cast<Char>();
+    _piId = OpenPrivateInfo(path_, accountName_);
+    calloc.free(path_);
+    calloc.free(accountName_);
+  }
 
   UserInfo getSelfInfo() => UserInfo(this, userInfoType.privateInfo, 0);
 
@@ -36,7 +51,7 @@ class P3p extends P3pgo {
     final publickeyRaw = publicKey.toNativeUtf8().cast<Char>();
     final nameRaw = name.toNativeUtf8().cast<Char>();
     final endpointRaw = endpoint.toNativeUtf8().cast<Char>();
-    final uid = AddUserByPublicKey(publickeyRaw, nameRaw, endpointRaw);
+    final uid = AddUserByPublicKey(piId, publickeyRaw, nameRaw, endpointRaw);
     calloc.free(publickeyRaw);
     calloc.free(nameRaw);
     calloc.free(endpointRaw);
@@ -59,7 +74,8 @@ class P3p extends P3pgo {
   }
 
   Iterable<Message> getMessages(UserInfo userInfo) {
-    final result = GetUserInfoMessages(userInfo.id).cast<Utf8>().toDartString();
+    final result =
+        GetUserInfoMessages(piId, userInfo.id).cast<Utf8>().toDartString();
     final idList = json.decode(result) as List<dynamic>? ?? [];
     final mids = <Message>[];
     for (final mid in idList) {
@@ -72,8 +88,11 @@ class P3p extends P3pgo {
     UserInfo userInfo,
     String text, {
     MessageType type = MessageType.text,
-  }) =>
-      SendMessage(userInfo.id, text.toNativeUtf8().cast<Char>());
+  }) {
+    final text_ = text.toNativeUtf8().cast<Char>();
+    SendMessage(piId, userInfo.id, text_);
+    calloc.free(text_);
+  }
 
   void print(dynamic s) {
     final log = '[p3p]: $s'.toNativeUtf8().cast<Char>();
@@ -88,14 +107,14 @@ class P3p extends P3pgo {
   }) {
     final ficp = fileInChatPath.toNativeUtf8().cast<Char>();
     final lfp = localFilePath.toNativeUtf8().cast<Char>();
-    final fseid = CreateFileStoreElement(ui.id, ficp, lfp);
+    final fseid = CreateFileStoreElement(piId, ui.id, ficp, lfp);
     calloc.free(ficp);
     calloc.free(lfp);
     return FileStoreElement(this, intId: fseid);
   }
 
   Iterable<UserInfo> getAllUserInfo() {
-    final result = GetAllUserInfo().cast<Utf8>().toDartString();
+    final result = GetAllUserInfo(piId).cast<Utf8>().toDartString();
 
     final idList = json.decode(result) as List<dynamic>? ?? [];
     final uis = <UserInfo>[];
@@ -107,6 +126,7 @@ class P3p extends P3pgo {
 
   UserInfo createSelfInfo(String username, String email, int bitSize) {
     CreateSelfInfo(
+      piId,
       username.toNativeUtf8().cast<Char>(),
       email.toNativeUtf8().cast<Char>(),
       bitSize,
@@ -115,13 +135,13 @@ class P3p extends P3pgo {
   }
 
   bool showSetup() {
-    final ret = ShowSetup();
+    final ret = ShowSetup(piId);
     print('showSetup(): $ret');
     return ret == 1;
   }
 
   void setPrivateInfoEepsiteDomain(String eepsite) {
-    SetPrivateInfoEepsiteDomain(eepsite.toNativeUtf8().cast<Char>());
+    SetPrivateInfoEepsiteDomain(piId, eepsite.toNativeUtf8().cast<Char>());
   }
 }
 
