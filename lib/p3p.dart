@@ -30,12 +30,14 @@ class P3p extends P3pgo {
     return _piId!;
   }
 
-  void initStore(String path, String accountName) {
+  void initStore(String path, String accountName, String endpointPath) {
     final path_ = path.toNativeUtf8().cast<Char>();
     final accountName_ = accountName.toNativeUtf8().cast<Char>();
-    _piId = OpenPrivateInfo(path_, accountName_);
+    final endpointPath_ = endpointPath.toNativeUtf8().cast<Char>();
+    _piId = OpenPrivateInfo(path_, accountName_, endpointPath_);
     calloc.free(path_);
     calloc.free(accountName_);
+    calloc.free(endpointPath_);
   }
 
   UserInfo getSelfInfo() => UserInfo(this, UserInfoType.privateInfo, 0);

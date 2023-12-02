@@ -44,19 +44,22 @@ class P3pgo {
   int OpenPrivateInfo(
     ffi.Pointer<ffi.Char> storePath,
     ffi.Pointer<ffi.Char> accountName,
+    ffi.Pointer<ffi.Char> endpointPath,
   ) {
     return _OpenPrivateInfo(
       storePath,
       accountName,
+      endpointPath,
     );
   }
 
   late final _OpenPrivateInfoPtr = _lookup<
       ffi.NativeFunction<
-          GoInt Function(ffi.Pointer<ffi.Char>,
+          GoInt Function(ffi.Pointer<ffi.Char>, ffi.Pointer<ffi.Char>,
               ffi.Pointer<ffi.Char>)>>('OpenPrivateInfo');
   late final _OpenPrivateInfo = _OpenPrivateInfoPtr.asFunction<
-      int Function(ffi.Pointer<ffi.Char>, ffi.Pointer<ffi.Char>)>();
+      int Function(ffi.Pointer<ffi.Char>, ffi.Pointer<ffi.Char>,
+          ffi.Pointer<ffi.Char>)>();
 
   int ShowSetup(
     int piId,
