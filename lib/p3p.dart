@@ -4,18 +4,15 @@
 library;
 
 import 'dart:convert';
-import 'dart:io';
-import 'dart:math';
-
-import 'package:p3p/src/generated_bindings.dart';
-import 'package:p3p/src/message.dart';
-import 'package:p3p/src/switch_platform.dart';
-import 'package:p3p/src/userinfo.dart';
-import 'package:ffi/ffi.dart';
 import 'dart:ffi';
 
-export 'src/userinfo.dart';
+import 'package:ffi/ffi.dart';
+import 'package:p3p/src/generated_bindings.dart';
+import 'package:p3p/src/message.dart';
+import 'package:p3p/src/userinfo.dart';
+
 export 'src/message.dart';
+export 'src/userinfo.dart';
 
 /// getP3pGo - start p3pgo library, and return it's object.
 Future<P3p> getP3p(String libPath) async {
@@ -41,7 +38,7 @@ class P3p extends P3pgo {
     calloc.free(accountName_);
   }
 
-  UserInfo getSelfInfo() => UserInfo(this, userInfoType.privateInfo, 0);
+  UserInfo getSelfInfo() => UserInfo(this, UserInfoType.privateInfo, 0);
 
   UserInfo addUserFromPublicKey(
     String publicKey,
@@ -55,7 +52,7 @@ class P3p extends P3pgo {
     calloc.free(publickeyRaw);
     calloc.free(nameRaw);
     calloc.free(endpointRaw);
-    return UserInfo(this, userInfoType.userInfo, uid);
+    return UserInfo(this, UserInfoType.userInfo, uid);
   }
 
   DiscoveredUserInfo? getUserDetailsByURL(String url) {
@@ -119,7 +116,7 @@ class P3p extends P3pgo {
     final idList = json.decode(result) as List<dynamic>? ?? [];
     final uis = <UserInfo>[];
     for (final uid in idList) {
-      uis.add(UserInfo(this, userInfoType.userInfo, uid as int));
+      uis.add(UserInfo(this, UserInfoType.userInfo, uid as int));
     }
     return uis;
   }
@@ -131,7 +128,7 @@ class P3p extends P3pgo {
       email.toNativeUtf8().cast<Char>(),
       bitSize,
     );
-    return UserInfo(this, userInfoType.privateInfo, 0);
+    return UserInfo(this, UserInfoType.privateInfo, 0);
   }
 
   bool showSetup() {

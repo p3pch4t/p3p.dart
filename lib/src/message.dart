@@ -1,6 +1,5 @@
-import 'package:p3p/p3p.dart';
 import 'package:ffi/ffi.dart';
-import 'dart:ffi';
+import 'package:p3p/p3p.dart';
 
 enum MessageType {
   unsupported,

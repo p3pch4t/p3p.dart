@@ -5,7 +5,7 @@ import 'dart:io';
 import 'package:ffi/ffi.dart';
 import 'package:p3p/p3p.dart';
 
-enum userInfoType {
+enum UserInfoType {
   userInfo,
   privateInfo,
 }
@@ -18,6 +18,10 @@ class DiscoveredUserInfo {
     required this.publickey,
     required this.endpoint,
   });
+  // We don't need it now, but since it is part of the p3p.dart, and we use
+  // go as the backend it makes sense to include it here, just to not have
+  // to fix issues once this becomes required.
+  // ignore: unused_field
   final P3p _p3p;
 
   final String name;
@@ -33,18 +37,18 @@ class UserInfo {
     this.intId,
   );
   final P3p _p3p;
-  final userInfoType _type;
+  final UserInfoType _type;
   final int intId;
 
   int get id => _p3p.GetUserInfoId(_p3p.piId, intId);
   PublicKey get publicKey => switch (_type) {
-        userInfoType.privateInfo => PublicKey(
+        UserInfoType.privateInfo => PublicKey(
             _p3p,
             _p3p.GetPrivateInfoPublicKeyArmored(_p3p.piId)
                 .cast<Utf8>()
                 .toDartString(),
           ),
-        userInfoType.userInfo => PublicKey(
+        UserInfoType.userInfo => PublicKey(
             _p3p,
             _p3p.GetUserInfoPublicKeyArmored(_p3p.piId, intId)
                 .cast<Utf8>()
@@ -55,18 +59,18 @@ class UserInfo {
   set name(String name) {
     final name_ = name.toNativeUtf8().cast<Char>();
     switch (_type) {
-      case userInfoType.privateInfo:
+      case UserInfoType.privateInfo:
         _p3p.SetPrivateInfoUsername(_p3p.piId, name_);
-      case userInfoType.userInfo:
+      case UserInfoType.userInfo:
         _p3p.SetUserInfoUsername(_p3p.piId, intId, name_);
     }
     calloc.free(name_);
   }
 
   String get name => switch (_type) {
-        userInfoType.privateInfo =>
+        UserInfoType.privateInfo =>
           _p3p.GetPrivateInfoUsername(_p3p.piId).cast<Utf8>().toDartString(),
-        userInfoType.userInfo => _p3p.GetUserInfoUsername(_p3p.piId, intId)
+        UserInfoType.userInfo => _p3p.GetUserInfoUsername(_p3p.piId, intId)
             .cast<Utf8>()
             .toDartString(),
       };
@@ -84,18 +88,18 @@ class UserInfo {
   }
 
   String get endpoint => switch (_type) {
-        userInfoType.privateInfo =>
+        UserInfoType.privateInfo =>
           _p3p.GetPrivateInfoEndpoint(_p3p.piId).cast<Utf8>().toDartString(),
-        userInfoType.userInfo => _p3p.GetUserInfoEndpoint(_p3p.piId, intId)
+        UserInfoType.userInfo => _p3p.GetUserInfoEndpoint(_p3p.piId, intId)
             .cast<Utf8>()
             .toDartString(),
       };
   set endpoint(String endpoint) {
     final endpoint_ = endpoint.toNativeUtf8().cast<Char>();
     switch (_type) {
-      case userInfoType.privateInfo:
+      case UserInfoType.privateInfo:
         _p3p.SetPrivateInfoEndpoint(_p3p.piId, endpoint_);
-      case userInfoType.userInfo:
+      case UserInfoType.userInfo:
         _p3p.SetUserInfoEndpoint(_p3p.piId, intId, endpoint_);
     }
     calloc.free(endpoint_);
