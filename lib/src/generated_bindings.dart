@@ -45,21 +45,23 @@ class P3pgo {
     ffi.Pointer<ffi.Char> storePath,
     ffi.Pointer<ffi.Char> accountName,
     ffi.Pointer<ffi.Char> endpointPath,
+    int isMini,
   ) {
     return _OpenPrivateInfo(
       storePath,
       accountName,
       endpointPath,
+      isMini,
     );
   }
 
   late final _OpenPrivateInfoPtr = _lookup<
       ffi.NativeFunction<
           GoInt Function(ffi.Pointer<ffi.Char>, ffi.Pointer<ffi.Char>,
-              ffi.Pointer<ffi.Char>)>>('OpenPrivateInfo');
+              ffi.Pointer<ffi.Char>, GoUint8)>>('OpenPrivateInfo');
   late final _OpenPrivateInfo = _OpenPrivateInfoPtr.asFunction<
       int Function(ffi.Pointer<ffi.Char>, ffi.Pointer<ffi.Char>,
-          ffi.Pointer<ffi.Char>)>();
+          ffi.Pointer<ffi.Char>, int)>();
 
   int ShowSetup(
     int piId,
@@ -634,6 +636,132 @@ class P3pgo {
           'GetUserInfoFileStoreElements');
   late final _GetUserInfoFileStoreElements = _GetUserInfoFileStoreElementsPtr
       .asFunction<ffi.Pointer<ffi.Char> Function(int, int)>();
+
+  ffi.Pointer<ffi.Char> GetQueuedEventIDs(
+    int piId,
+  ) {
+    return _GetQueuedEventIDs(
+      piId,
+    );
+  }
+
+  late final _GetQueuedEventIDsPtr =
+      _lookup<ffi.NativeFunction<ffi.Pointer<ffi.Char> Function(GoInt)>>(
+          'GetQueuedEventIDs');
+  late final _GetQueuedEventIDs =
+      _GetQueuedEventIDsPtr.asFunction<ffi.Pointer<ffi.Char> Function(int)>();
+
+  int GetQueuedEventCreatedAt(
+    int piId,
+    int queuedEventId,
+  ) {
+    return _GetQueuedEventCreatedAt(
+      piId,
+      queuedEventId,
+    );
+  }
+
+  late final _GetQueuedEventCreatedAtPtr =
+      _lookup<ffi.NativeFunction<GoInt64 Function(GoInt, GoInt)>>(
+          'GetQueuedEventCreatedAt');
+  late final _GetQueuedEventCreatedAt =
+      _GetQueuedEventCreatedAtPtr.asFunction<int Function(int, int)>();
+
+  int GetQueuedEventDeletedAt(
+    int piId,
+    int queuedEventId,
+  ) {
+    return _GetQueuedEventDeletedAt(
+      piId,
+      queuedEventId,
+    );
+  }
+
+  late final _GetQueuedEventDeletedAtPtr =
+      _lookup<ffi.NativeFunction<GoInt64 Function(GoInt, GoInt)>>(
+          'GetQueuedEventDeletedAt');
+  late final _GetQueuedEventDeletedAt =
+      _GetQueuedEventDeletedAtPtr.asFunction<int Function(int, int)>();
+
+  int GetQueuedEventUpdatedAt(
+    int piId,
+    int queuedEventId,
+  ) {
+    return _GetQueuedEventUpdatedAt(
+      piId,
+      queuedEventId,
+    );
+  }
+
+  late final _GetQueuedEventUpdatedAtPtr =
+      _lookup<ffi.NativeFunction<GoInt64 Function(GoInt, GoInt)>>(
+          'GetQueuedEventUpdatedAt');
+  late final _GetQueuedEventUpdatedAt =
+      _GetQueuedEventUpdatedAtPtr.asFunction<int Function(int, int)>();
+
+  int GetQueuedEventLastRelayed(
+    int piId,
+    int queuedEventId,
+  ) {
+    return _GetQueuedEventLastRelayed(
+      piId,
+      queuedEventId,
+    );
+  }
+
+  late final _GetQueuedEventLastRelayedPtr =
+      _lookup<ffi.NativeFunction<GoInt64 Function(GoInt, GoInt)>>(
+          'GetQueuedEventLastRelayed');
+  late final _GetQueuedEventLastRelayed =
+      _GetQueuedEventLastRelayedPtr.asFunction<int Function(int, int)>();
+
+  GoSlice GetQueuedEventBody(
+    int piId,
+    int queuedEventId,
+  ) {
+    return _GetQueuedEventBody(
+      piId,
+      queuedEventId,
+    );
+  }
+
+  late final _GetQueuedEventBodyPtr =
+      _lookup<ffi.NativeFunction<GoSlice Function(GoInt, GoInt)>>(
+          'GetQueuedEventBody');
+  late final _GetQueuedEventBody =
+      _GetQueuedEventBodyPtr.asFunction<GoSlice Function(int, int)>();
+
+  ffi.Pointer<ffi.Char> GetQueuedEventEndpoint(
+    int piId,
+    int queuedEventId,
+  ) {
+    return _GetQueuedEventEndpoint(
+      piId,
+      queuedEventId,
+    );
+  }
+
+  late final _GetQueuedEventEndpointPtr =
+      _lookup<ffi.NativeFunction<ffi.Pointer<ffi.Char> Function(GoInt, GoInt)>>(
+          'GetQueuedEventEndpoint');
+  late final _GetQueuedEventEndpoint = _GetQueuedEventEndpointPtr.asFunction<
+      ffi.Pointer<ffi.Char> Function(int, int)>();
+
+  int GetQueuedEventRelayTries(
+    int piId,
+    int queuedEventId,
+  ) {
+    return _GetQueuedEventRelayTries(
+      piId,
+      queuedEventId,
+    );
+  }
+
+  late final _GetQueuedEventRelayTriesPtr =
+      _lookup<ffi.NativeFunction<GoInt Function(GoInt, GoInt)>>(
+          'GetQueuedEventRelayTries');
+  late final _GetQueuedEventRelayTries =
+      _GetQueuedEventRelayTriesPtr.asFunction<int Function(int, int)>();
 }
 
 final class max_align_t extends ffi.Opaque {}

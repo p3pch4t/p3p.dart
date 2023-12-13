@@ -9,6 +9,7 @@ import 'dart:ffi';
 import 'package:ffi/ffi.dart';
 import 'package:p3p/src/generated_bindings.dart';
 import 'package:p3p/src/message.dart';
+import 'package:p3p/src/queuedevent.dart';
 import 'package:p3p/src/userinfo.dart';
 
 export 'src/message.dart';
@@ -30,11 +31,17 @@ class P3p extends P3pgo {
     return _piId!;
   }
 
-  void initStore(String path, String accountName, String endpointPath) {
+  void initStore(
+    String path,
+    String accountName,
+    String endpointPath, {
+    bool isMini = false,
+  }) {
     final path_ = path.toNativeUtf8().cast<Char>();
     final accountName_ = accountName.toNativeUtf8().cast<Char>();
     final endpointPath_ = endpointPath.toNativeUtf8().cast<Char>();
-    _piId = OpenPrivateInfo(path_, accountName_, endpointPath_);
+    final isMini_ = isMini ? 1 : 0;
+    _piId = OpenPrivateInfo(path_, accountName_, endpointPath_, isMini_);
     calloc.free(path_);
     calloc.free(accountName_);
     calloc.free(endpointPath_);
@@ -131,6 +138,16 @@ class P3p extends P3pgo {
       bitSize,
     );
     return UserInfo(this, UserInfoType.privateInfo, 0);
+  }
+
+  List<QueuedEvent> getQueuedEvents() {
+    final result = GetQueuedEventIDs(piId).cast<Utf8>().toDartString();
+    final idList = json.decode(result) as List<dynamic>? ?? [];
+    final qes = <QueuedEvent>[];
+    for (final uid in idList) {
+      qes.add(QueuedEvent(this, id: uid as int));
+    }
+    return qes;
   }
 
   bool showSetup() {
