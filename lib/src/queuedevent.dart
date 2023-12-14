@@ -31,7 +31,7 @@ class QueuedEvent {
   DateTime get lastRelayed => DateTime.fromMicrosecondsSinceEpoch(
         _p3p.GetQueuedEventLastRelayed(_p3p.piId, id),
       );
-  int get realayTries => _p3p.GetQueuedEventRelayTries();
+  int get realayTries => _p3p.GetQueuedEventRelayTries(_p3p.piId, id);
 }
 
 Uint8List convertGoSliceToUint8List(GoSlice goSlice) {
