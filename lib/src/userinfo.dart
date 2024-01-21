@@ -4,6 +4,7 @@ import 'dart:io';
 
 import 'package:ffi/ffi.dart';
 import 'package:p3p/p3p.dart';
+import 'package:p3p/src/endpoint_stats.dart';
 
 enum UserInfoType {
   userInfo,
@@ -104,6 +105,9 @@ class UserInfo {
     }
     calloc.free(endpoint_);
   }
+
+  EndpointStats get endpointStats =>
+      EndpointStats(_p3p, id: _p3p.GetUserInfoEndpointStats(_p3p.piId, intId));
 
   bool forceSendIntroduceEvent() =>
       _p3p.ForceSendIntroduceEvent(_p3p.piId, intId) == 1;

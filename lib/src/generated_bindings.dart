@@ -637,6 +637,22 @@ class P3pgo {
   late final _GetUserInfoFileStoreElements = _GetUserInfoFileStoreElementsPtr
       .asFunction<ffi.Pointer<ffi.Char> Function(int, int)>();
 
+  int GetUserInfoEndpointStats(
+    int piId,
+    int uid,
+  ) {
+    return _GetUserInfoEndpointStats(
+      piId,
+      uid,
+    );
+  }
+
+  late final _GetUserInfoEndpointStatsPtr =
+      _lookup<ffi.NativeFunction<GoUint Function(GoInt, GoInt64)>>(
+          'GetUserInfoEndpointStats');
+  late final _GetUserInfoEndpointStats =
+      _GetUserInfoEndpointStatsPtr.asFunction<int Function(int, int)>();
+
   ffi.Pointer<ffi.Char> GetQueuedEventIDs(
     int piId,
   ) {
@@ -762,6 +778,150 @@ class P3pgo {
           'GetQueuedEventRelayTries');
   late final _GetQueuedEventRelayTries =
       _GetQueuedEventRelayTriesPtr.asFunction<int Function(int, int)>();
+
+  int GetQueuedEventEndpointStats(
+    int piId,
+    int queuedEventId,
+  ) {
+    return _GetQueuedEventEndpointStats(
+      piId,
+      queuedEventId,
+    );
+  }
+
+  late final _GetQueuedEventEndpointStatsPtr =
+      _lookup<ffi.NativeFunction<GoUint Function(GoInt, GoInt)>>(
+          'GetQueuedEventEndpointStats');
+  late final _GetQueuedEventEndpointStats =
+      _GetQueuedEventEndpointStatsPtr.asFunction<int Function(int, int)>();
+
+  int GetEndpointStatsCreatedAt(
+    int piId,
+    int endpointStatsId,
+  ) {
+    return _GetEndpointStatsCreatedAt(
+      piId,
+      endpointStatsId,
+    );
+  }
+
+  late final _GetEndpointStatsCreatedAtPtr =
+      _lookup<ffi.NativeFunction<GoInt64 Function(GoInt, GoInt)>>(
+          'GetEndpointStatsCreatedAt');
+  late final _GetEndpointStatsCreatedAt =
+      _GetEndpointStatsCreatedAtPtr.asFunction<int Function(int, int)>();
+
+  int GetEndpointStatsUpdatedAt(
+    int piId,
+    int endpointStatsId,
+  ) {
+    return _GetEndpointStatsUpdatedAt(
+      piId,
+      endpointStatsId,
+    );
+  }
+
+  late final _GetEndpointStatsUpdatedAtPtr =
+      _lookup<ffi.NativeFunction<GoInt64 Function(GoInt, GoInt)>>(
+          'GetEndpointStatsUpdatedAt');
+  late final _GetEndpointStatsUpdatedAt =
+      _GetEndpointStatsUpdatedAtPtr.asFunction<int Function(int, int)>();
+
+  int GetEndpointStatsDeletedAt(
+    int piId,
+    int endpointStatsId,
+  ) {
+    return _GetEndpointStatsDeletedAt(
+      piId,
+      endpointStatsId,
+    );
+  }
+
+  late final _GetEndpointStatsDeletedAtPtr =
+      _lookup<ffi.NativeFunction<GoInt64 Function(GoInt, GoInt)>>(
+          'GetEndpointStatsDeletedAt');
+  late final _GetEndpointStatsDeletedAt =
+      _GetEndpointStatsDeletedAtPtr.asFunction<int Function(int, int)>();
+
+  ffi.Pointer<ffi.Char> GetEndpointStatsEndpoint(
+    int piId,
+    int endpointStatsId,
+  ) {
+    return _GetEndpointStatsEndpoint(
+      piId,
+      endpointStatsId,
+    );
+  }
+
+  late final _GetEndpointStatsEndpointPtr =
+      _lookup<ffi.NativeFunction<ffi.Pointer<ffi.Char> Function(GoInt, GoInt)>>(
+          'GetEndpointStatsEndpoint');
+  late final _GetEndpointStatsEndpoint = _GetEndpointStatsEndpointPtr
+      .asFunction<ffi.Pointer<ffi.Char> Function(int, int)>();
+
+  int GetEndpointStatsLastContactOut(
+    int piId,
+    int endpointStatsId,
+  ) {
+    return _GetEndpointStatsLastContactOut(
+      piId,
+      endpointStatsId,
+    );
+  }
+
+  late final _GetEndpointStatsLastContactOutPtr =
+      _lookup<ffi.NativeFunction<GoInt64 Function(GoInt, GoInt)>>(
+          'GetEndpointStatsLastContactOut');
+  late final _GetEndpointStatsLastContactOut =
+      _GetEndpointStatsLastContactOutPtr.asFunction<int Function(int, int)>();
+
+  int GetEndpointStatsLastContactIn(
+    int piId,
+    int endpointStatsId,
+  ) {
+    return _GetEndpointStatsLastContactIn(
+      piId,
+      endpointStatsId,
+    );
+  }
+
+  late final _GetEndpointStatsLastContactInPtr =
+      _lookup<ffi.NativeFunction<GoInt64 Function(GoInt, GoInt)>>(
+          'GetEndpointStatsLastContactIn');
+  late final _GetEndpointStatsLastContactIn =
+      _GetEndpointStatsLastContactInPtr.asFunction<int Function(int, int)>();
+
+  int GetEndpointStatsFailInRow(
+    int piId,
+    int endpointStatsId,
+  ) {
+    return _GetEndpointStatsFailInRow(
+      piId,
+      endpointStatsId,
+    );
+  }
+
+  late final _GetEndpointStatsFailInRowPtr =
+      _lookup<ffi.NativeFunction<GoInt Function(GoInt, GoInt)>>(
+          'GetEndpointStatsFailInRow');
+  late final _GetEndpointStatsFailInRow =
+      _GetEndpointStatsFailInRowPtr.asFunction<int Function(int, int)>();
+
+  int GetEndpointStatsCurrentDelay(
+    int piId,
+    int endpointStatsId,
+  ) {
+    return _GetEndpointStatsCurrentDelay(
+      piId,
+      endpointStatsId,
+    );
+  }
+
+  late final _GetEndpointStatsCurrentDelayPtr =
+      _lookup<ffi.NativeFunction<GoInt Function(GoInt, GoInt)>>(
+          'GetEndpointStatsCurrentDelay');
+  late final _GetEndpointStatsCurrentDelay =
+      _GetEndpointStatsCurrentDelayPtr.asFunction<int Function(int, int)>();
 }
 
 final class max_align_t extends ffi.Opaque {}
