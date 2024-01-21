@@ -8,11 +8,11 @@ environment:
   sdk: ^3.0.0
 
 dev_dependencies:
-  build_runner: ^2.4.6
-  ffigen: ^9.0.1
-  lints: ^3.0.0
-  test: ^1.21.0
-  very_good_analysis: ^5.0.0+1
+  build_runner: 2.4.6
+  ffigen: 9.0.1
+  lints: 3.0.0
+  test: 1.24.6
+  very_good_analysis: 5.0.0+1
 
 ffigen:
   name: 'P3pgo'
@@ -22,5 +22,6 @@ ffigen:
   headers:
     entry-points:
       - 'vendor/api_host.h'
+
 dependencies:
-  ffi: ^2.1.0
+  ffi: 2.1.0
