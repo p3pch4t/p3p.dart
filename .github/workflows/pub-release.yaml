@@ -13,6 +13,10 @@ jobs:
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
+      - name: Generate bindings
+        run: |
+          cd ${{ github.workspace }}
+          make lib/src/generated_bindings.dart
       - name: Authenticate
         run: |
           cd ${{ github.workspace }} \

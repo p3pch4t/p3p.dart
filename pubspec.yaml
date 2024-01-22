@@ -24,4 +24,4 @@ ffigen:
       - 'vendor/api_host.h'
 
 dependencies:
-  ffi: 2.1.0
+  ffi: ^2.1.0
