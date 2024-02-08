@@ -106,17 +106,17 @@ class P3p extends P3pgo {
     calloc.free(log);
   }
 
-  FileStoreElement createFileStoreElement(
+  void createSharedFile(
     UserInfo ui, {
     required String localFilePath,
-    required String fileInChatPath,
+    required String remoteFilePath,
   }) {
-    final ficp = fileInChatPath.toNativeUtf8().cast<Char>();
-    final lfp = localFilePath.toNativeUtf8().cast<Char>();
-    final fseid = CreateFileStoreElement(piId, ui.id, ficp, lfp);
-    calloc.free(ficp);
-    calloc.free(lfp);
-    return FileStoreElement(this, intId: fseid);
+    final localFilePath_ = localFilePath.toNativeUtf8();
+    final remoteFilePath_ = remoteFilePath.toNativeUtf8();
+
+    CreateFile(piId, ui.id, localFilePath_.cast(), remoteFilePath_.cast());
+    calloc.free(localFilePath_);
+    calloc.free(remoteFilePath_);
   }
 
   Iterable<UserInfo> getAllUserInfo() {

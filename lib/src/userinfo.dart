@@ -76,14 +76,13 @@ class UserInfo {
             .toDartString(),
       };
 
-  FileStore get fileStore {
-    final result = _p3p.GetUserInfoFileStoreElements(_p3p.piId, intId)
-        .cast<Utf8>()
-        .toDartString();
+  FileStore get sharedFiles {
+    final result =
+        _p3p.GetSharedFilesIDs(_p3p.piId, intId).cast<Utf8>().toDartString();
     final idList = json.decode(result) as List<dynamic>? ?? [];
-    final fseids = <FileStoreElement>[];
+    final fseids = <SharedFile>[];
     for (final fseid in idList) {
-      fseids.add(FileStoreElement(_p3p, intId: fseid as int));
+      fseids.add(SharedFile(_p3p, intId: fseid as int));
     }
     return FileStore(files: fseids);
   }
@@ -127,57 +126,46 @@ class FileStore {
   FileStore({
     required this.files,
   });
-  List<FileStoreElement> files;
+  final List<SharedFile> files;
 }
 
-class FileStoreElement {
-  FileStoreElement(
+class SharedFile {
+  SharedFile(
     this._p3p, {
     required this.intId,
   });
   final P3p _p3p;
   final int intId;
-  String get localPath => _p3p.GetFileStoreElementLocalPath(_p3p.piId, intId)
-      .cast<Utf8>()
-      .toDartString();
-  bool get isDownloaded =>
-      _p3p.GetFileStoreElementIsDownloaded(_p3p.piId, intId) == 1;
-  int get sizeBytes => _p3p.GetFileStoreElementSizeBytes(_p3p.piId, intId);
-  File get file => File(localPath);
 
-  String get path => _p3p.GetFileStoreElementPath(_p3p.piId, intId)
-      .cast<Utf8>()
-      .toDartString();
-  set path(String path) {
-    final newPath = path.toNativeUtf8().cast<Char>();
-    _p3p.SetFileStoreElementPath(_p3p.piId, intId, newPath);
-    calloc.free(newPath);
-  }
-
-  bool get isDeleted =>
-      _p3p.GetFileStoreElementIsDeleted(_p3p.piId, intId) == 1;
-  set isDeleted(bool? isDeleted) => _p3p.SetFileStoreElementIsDeleted(
-        _p3p.piId,
-        intId,
-        isDeleted ?? true ? 1 : 0,
+  DateTime get createdAt => DateTime.fromMicrosecondsSinceEpoch(
+        _p3p.GetSharedFileCreatedAt(_p3p.piId, intId),
       );
 
-  bool get shouldFetch => true;
+  DateTime get updatedAt => DateTime.fromMicrosecondsSinceEpoch(
+        _p3p.GetSharedFileUpdatedAt(_p3p.piId, intId),
+      );
 
-  void updateFileContent() {
-    // We don't need this function currently.
-    // Why you may ask - simply because p3pgo already checks for filesystem
-    // changes and automagically updates the content.
+  DateTime get deletedAt => DateTime.fromMicrosecondsSinceEpoch(
+        _p3p.GetSharedFileDeletedAt(_p3p.piId, intId),
+      );
+
+  String get sharedFor =>
+      _p3p.GetSharedFileSharedFor(_p3p.piId, intId).cast<Utf8>().toDartString();
+
+  String get sha512sum =>
+      _p3p.GetSharedFileSha512Sum(_p3p.piId, intId).cast<Utf8>().toDartString();
+
+  DateTime get lastEdit => DateTime.fromMicrosecondsSinceEpoch(
+        _p3p.GetSharedFileLastEdit(_p3p.piId, intId),
+      );
+  String get filePath =>
+      _p3p.GetSharedFileFilePath(_p3p.piId, intId).cast<Utf8>().toDartString();
+
+  String get localFilePath => _p3p.GetSharedFileLocalFilePath(_p3p.piId, intId)
+      .cast<Utf8>()
+      .toDartString();
+
+  void delete() {
+    _p3p.DeleteSharedFile(_p3p.piId, intId);
   }
 }
-
-// InternalKeyID string `json:"-"`
-// Uuid          string `json:"uuid,omitempty"`
-// //Path - is the in chat path, eg /Apps/Calendar.xdc
-// Path string `json:"path,omitempty"`
-// //LocalPath - is the filesystem path
-// LocalPath string `json:"-"`
-// Sha512sum string `json:"sha512sum,omitempty"`
-// SizeBytes int64  `json:"sizeBytes,omitempty"`
-// //	IsDeleted  bool   `json:"isDeleted,omitempty"`
-// ModifyTime int64 `json:"modifyTime,omitempty"`

@@ -483,160 +483,6 @@ class P3pgo {
   late final _SendMessage = _SendMessagePtr.asFunction<
       void Function(int, int, ffi.Pointer<ffi.Char>)>();
 
-  int CreateFileStoreElement(
-    int piId,
-    int uid,
-    ffi.Pointer<ffi.Char> fileInChatPath,
-    ffi.Pointer<ffi.Char> localFilePath,
-  ) {
-    return _CreateFileStoreElement(
-      piId,
-      uid,
-      fileInChatPath,
-      localFilePath,
-    );
-  }
-
-  late final _CreateFileStoreElementPtr = _lookup<
-      ffi.NativeFunction<
-          GoInt64 Function(GoInt, GoUint, ffi.Pointer<ffi.Char>,
-              ffi.Pointer<ffi.Char>)>>('CreateFileStoreElement');
-  late final _CreateFileStoreElement = _CreateFileStoreElementPtr.asFunction<
-      int Function(int, int, ffi.Pointer<ffi.Char>, ffi.Pointer<ffi.Char>)>();
-
-  ffi.Pointer<ffi.Char> GetFileStoreElementLocalPath(
-    int piId,
-    int fseId,
-  ) {
-    return _GetFileStoreElementLocalPath(
-      piId,
-      fseId,
-    );
-  }
-
-  late final _GetFileStoreElementLocalPathPtr = _lookup<
-          ffi.NativeFunction<ffi.Pointer<ffi.Char> Function(GoInt, GoUint)>>(
-      'GetFileStoreElementLocalPath');
-  late final _GetFileStoreElementLocalPath = _GetFileStoreElementLocalPathPtr
-      .asFunction<ffi.Pointer<ffi.Char> Function(int, int)>();
-
-  int GetFileStoreElementIsDownloaded(
-    int piId,
-    int fseId,
-  ) {
-    return _GetFileStoreElementIsDownloaded(
-      piId,
-      fseId,
-    );
-  }
-
-  late final _GetFileStoreElementIsDownloadedPtr =
-      _lookup<ffi.NativeFunction<GoUint8 Function(GoInt, GoUint)>>(
-          'GetFileStoreElementIsDownloaded');
-  late final _GetFileStoreElementIsDownloaded =
-      _GetFileStoreElementIsDownloadedPtr.asFunction<int Function(int, int)>();
-
-  int GetFileStoreElementSizeBytes(
-    int piId,
-    int fseId,
-  ) {
-    return _GetFileStoreElementSizeBytes(
-      piId,
-      fseId,
-    );
-  }
-
-  late final _GetFileStoreElementSizeBytesPtr =
-      _lookup<ffi.NativeFunction<GoInt64 Function(GoInt, GoUint)>>(
-          'GetFileStoreElementSizeBytes');
-  late final _GetFileStoreElementSizeBytes =
-      _GetFileStoreElementSizeBytesPtr.asFunction<int Function(int, int)>();
-
-  ffi.Pointer<ffi.Char> GetFileStoreElementPath(
-    int piId,
-    int fseId,
-  ) {
-    return _GetFileStoreElementPath(
-      piId,
-      fseId,
-    );
-  }
-
-  late final _GetFileStoreElementPathPtr = _lookup<
-          ffi.NativeFunction<ffi.Pointer<ffi.Char> Function(GoInt, GoUint)>>(
-      'GetFileStoreElementPath');
-  late final _GetFileStoreElementPath = _GetFileStoreElementPathPtr.asFunction<
-      ffi.Pointer<ffi.Char> Function(int, int)>();
-
-  void SetFileStoreElementPath(
-    int piId,
-    int fseId,
-    ffi.Pointer<ffi.Char> newPath,
-  ) {
-    return _SetFileStoreElementPath(
-      piId,
-      fseId,
-      newPath,
-    );
-  }
-
-  late final _SetFileStoreElementPathPtr = _lookup<
-      ffi.NativeFunction<
-          ffi.Void Function(GoInt, GoUint,
-              ffi.Pointer<ffi.Char>)>>('SetFileStoreElementPath');
-  late final _SetFileStoreElementPath = _SetFileStoreElementPathPtr.asFunction<
-      void Function(int, int, ffi.Pointer<ffi.Char>)>();
-
-  int GetFileStoreElementIsDeleted(
-    int piId,
-    int fseId,
-  ) {
-    return _GetFileStoreElementIsDeleted(
-      piId,
-      fseId,
-    );
-  }
-
-  late final _GetFileStoreElementIsDeletedPtr =
-      _lookup<ffi.NativeFunction<GoUint8 Function(GoInt, GoUint)>>(
-          'GetFileStoreElementIsDeleted');
-  late final _GetFileStoreElementIsDeleted =
-      _GetFileStoreElementIsDeletedPtr.asFunction<int Function(int, int)>();
-
-  void SetFileStoreElementIsDeleted(
-    int piId,
-    int fseId,
-    int isDeleted,
-  ) {
-    return _SetFileStoreElementIsDeleted(
-      piId,
-      fseId,
-      isDeleted,
-    );
-  }
-
-  late final _SetFileStoreElementIsDeletedPtr =
-      _lookup<ffi.NativeFunction<ffi.Void Function(GoInt, GoUint, GoUint8)>>(
-          'SetFileStoreElementIsDeleted');
-  late final _SetFileStoreElementIsDeleted = _SetFileStoreElementIsDeletedPtr
-      .asFunction<void Function(int, int, int)>();
-
-  ffi.Pointer<ffi.Char> GetUserInfoFileStoreElements(
-    int piId,
-    int UserInfoID,
-  ) {
-    return _GetUserInfoFileStoreElements(
-      piId,
-      UserInfoID,
-    );
-  }
-
-  late final _GetUserInfoFileStoreElementsPtr =
-      _lookup<ffi.NativeFunction<ffi.Pointer<ffi.Char> Function(GoInt, GoInt)>>(
-          'GetUserInfoFileStoreElements');
-  late final _GetUserInfoFileStoreElements = _GetUserInfoFileStoreElementsPtr
-      .asFunction<ffi.Pointer<ffi.Char> Function(int, int)>();
-
   int GetUserInfoEndpointStats(
     int piId,
     int uid,
@@ -875,22 +721,6 @@ class P3pgo {
   late final _GetEndpointStatsLastContactOut =
       _GetEndpointStatsLastContactOutPtr.asFunction<int Function(int, int)>();
 
-  int GetEndpointStatsLastContactIn(
-    int piId,
-    int endpointStatsId,
-  ) {
-    return _GetEndpointStatsLastContactIn(
-      piId,
-      endpointStatsId,
-    );
-  }
-
-  late final _GetEndpointStatsLastContactInPtr =
-      _lookup<ffi.NativeFunction<GoInt64 Function(GoInt, GoInt)>>(
-          'GetEndpointStatsLastContactIn');
-  late final _GetEndpointStatsLastContactIn =
-      _GetEndpointStatsLastContactInPtr.asFunction<int Function(int, int)>();
-
   int GetEndpointStatsFailInRow(
     int piId,
     int endpointStatsId,
@@ -922,6 +752,204 @@ class P3pgo {
           'GetEndpointStatsCurrentDelay');
   late final _GetEndpointStatsCurrentDelay =
       _GetEndpointStatsCurrentDelayPtr.asFunction<int Function(int, int)>();
+
+  ffi.Pointer<ffi.Char> CreateFile(
+    int piId,
+    int uid,
+    ffi.Pointer<ffi.Char> localFilePath,
+    ffi.Pointer<ffi.Char> remoteFilePath,
+  ) {
+    return _CreateFile(
+      piId,
+      uid,
+      localFilePath,
+      remoteFilePath,
+    );
+  }
+
+  late final _CreateFilePtr = _lookup<
+      ffi.NativeFunction<
+          ffi.Pointer<ffi.Char> Function(GoInt, GoInt64, ffi.Pointer<ffi.Char>,
+              ffi.Pointer<ffi.Char>)>>('CreateFile');
+  late final _CreateFile = _CreateFilePtr.asFunction<
+      ffi.Pointer<ffi.Char> Function(
+          int, int, ffi.Pointer<ffi.Char>, ffi.Pointer<ffi.Char>)>();
+
+  ffi.Pointer<ffi.Char> GetSharedFilesIDs(
+    int piId,
+    int uid,
+  ) {
+    return _GetSharedFilesIDs(
+      piId,
+      uid,
+    );
+  }
+
+  late final _GetSharedFilesIDsPtr = _lookup<
+          ffi.NativeFunction<ffi.Pointer<ffi.Char> Function(GoInt, GoInt64)>>(
+      'GetSharedFilesIDs');
+  late final _GetSharedFilesIDs = _GetSharedFilesIDsPtr.asFunction<
+      ffi.Pointer<ffi.Char> Function(int, int)>();
+
+  int GetSharedFileID(
+    int piId,
+    int fileId,
+  ) {
+    return _GetSharedFileID(
+      piId,
+      fileId,
+    );
+  }
+
+  late final _GetSharedFileIDPtr =
+      _lookup<ffi.NativeFunction<GoUint Function(GoInt, GoUint)>>(
+          'GetSharedFileID');
+  late final _GetSharedFileID =
+      _GetSharedFileIDPtr.asFunction<int Function(int, int)>();
+
+  int GetSharedFileCreatedAt(
+    int piId,
+    int fileId,
+  ) {
+    return _GetSharedFileCreatedAt(
+      piId,
+      fileId,
+    );
+  }
+
+  late final _GetSharedFileCreatedAtPtr =
+      _lookup<ffi.NativeFunction<GoInt64 Function(GoInt, GoUint)>>(
+          'GetSharedFileCreatedAt');
+  late final _GetSharedFileCreatedAt =
+      _GetSharedFileCreatedAtPtr.asFunction<int Function(int, int)>();
+
+  int GetSharedFileUpdatedAt(
+    int piId,
+    int fileId,
+  ) {
+    return _GetSharedFileUpdatedAt(
+      piId,
+      fileId,
+    );
+  }
+
+  late final _GetSharedFileUpdatedAtPtr =
+      _lookup<ffi.NativeFunction<GoInt64 Function(GoInt, GoUint)>>(
+          'GetSharedFileUpdatedAt');
+  late final _GetSharedFileUpdatedAt =
+      _GetSharedFileUpdatedAtPtr.asFunction<int Function(int, int)>();
+
+  int GetSharedFileDeletedAt(
+    int piId,
+    int fileId,
+  ) {
+    return _GetSharedFileDeletedAt(
+      piId,
+      fileId,
+    );
+  }
+
+  late final _GetSharedFileDeletedAtPtr =
+      _lookup<ffi.NativeFunction<GoInt64 Function(GoInt, GoUint)>>(
+          'GetSharedFileDeletedAt');
+  late final _GetSharedFileDeletedAt =
+      _GetSharedFileDeletedAtPtr.asFunction<int Function(int, int)>();
+
+  ffi.Pointer<ffi.Char> GetSharedFileSharedFor(
+    int piId,
+    int fileId,
+  ) {
+    return _GetSharedFileSharedFor(
+      piId,
+      fileId,
+    );
+  }
+
+  late final _GetSharedFileSharedForPtr = _lookup<
+          ffi.NativeFunction<ffi.Pointer<ffi.Char> Function(GoInt, GoUint)>>(
+      'GetSharedFileSharedFor');
+  late final _GetSharedFileSharedFor = _GetSharedFileSharedForPtr.asFunction<
+      ffi.Pointer<ffi.Char> Function(int, int)>();
+
+  ffi.Pointer<ffi.Char> GetSharedFileSha512Sum(
+    int piId,
+    int fileId,
+  ) {
+    return _GetSharedFileSha512Sum(
+      piId,
+      fileId,
+    );
+  }
+
+  late final _GetSharedFileSha512SumPtr = _lookup<
+          ffi.NativeFunction<ffi.Pointer<ffi.Char> Function(GoInt, GoUint)>>(
+      'GetSharedFileSha512Sum');
+  late final _GetSharedFileSha512Sum = _GetSharedFileSha512SumPtr.asFunction<
+      ffi.Pointer<ffi.Char> Function(int, int)>();
+
+  int GetSharedFileLastEdit(
+    int piId,
+    int fileId,
+  ) {
+    return _GetSharedFileLastEdit(
+      piId,
+      fileId,
+    );
+  }
+
+  late final _GetSharedFileLastEditPtr =
+      _lookup<ffi.NativeFunction<GoInt64 Function(GoInt, GoUint)>>(
+          'GetSharedFileLastEdit');
+  late final _GetSharedFileLastEdit =
+      _GetSharedFileLastEditPtr.asFunction<int Function(int, int)>();
+
+  ffi.Pointer<ffi.Char> GetSharedFileFilePath(
+    int piId,
+    int fileId,
+  ) {
+    return _GetSharedFileFilePath(
+      piId,
+      fileId,
+    );
+  }
+
+  late final _GetSharedFileFilePathPtr = _lookup<
+          ffi.NativeFunction<ffi.Pointer<ffi.Char> Function(GoInt, GoUint)>>(
+      'GetSharedFileFilePath');
+  late final _GetSharedFileFilePath = _GetSharedFileFilePathPtr.asFunction<
+      ffi.Pointer<ffi.Char> Function(int, int)>();
+
+  ffi.Pointer<ffi.Char> GetSharedFileLocalFilePath(
+    int piId,
+    int fileId,
+  ) {
+    return _GetSharedFileLocalFilePath(
+      piId,
+      fileId,
+    );
+  }
+
+  late final _GetSharedFileLocalFilePathPtr = _lookup<
+          ffi.NativeFunction<ffi.Pointer<ffi.Char> Function(GoInt, GoUint)>>(
+      'GetSharedFileLocalFilePath');
+  late final _GetSharedFileLocalFilePath = _GetSharedFileLocalFilePathPtr
+      .asFunction<ffi.Pointer<ffi.Char> Function(int, int)>();
+
+  void DeleteSharedFile(
+    int piId,
+    int fileId,
+  ) {
+    return _DeleteSharedFile(
+      piId,
+      fileId,
+    );
+  }
+
+  late final _DeleteSharedFilePtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(GoInt, GoUint)>>(
+          'DeleteSharedFile');
+  late final _DeleteSharedFile =
+      _DeleteSharedFilePtr.asFunction<void Function(int, int)>();
 }
 
 final class max_align_t extends ffi.Opaque {}

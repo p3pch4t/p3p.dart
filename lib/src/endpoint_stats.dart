@@ -21,10 +21,7 @@ class EndpointStats {
   String get endpoint =>
       _p3p.GetEndpointStatsEndpoint(_p3p.piId, id).cast<Utf8>().toDartString();
 
-  DateTime get LastContactIn => DateTime.fromMicrosecondsSinceEpoch(
-        _p3p.GetEndpointStatsLastContactIn(_p3p.piId, id),
-      );
-  DateTime get LastContactOut => DateTime.fromMicrosecondsSinceEpoch(
+  DateTime get lastContactOut => DateTime.fromMicrosecondsSinceEpoch(
         _p3p.GetEndpointStatsLastContactOut(_p3p.piId, id),
       );
   int get failInRow => _p3p.GetEndpointStatsFailInRow(_p3p.piId, id);

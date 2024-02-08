@@ -1,4 +1,4 @@
-P3PGO_TAG=v1.0.0RC3
+P3PGO_TAG=v1.0.0RC7
 
 version:
 	sed -i "s/version: .*/version: 1.0.0+$(shell git rev-list --count HEAD)/" "pubspec.yaml"
