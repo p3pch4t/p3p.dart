@@ -166,7 +166,7 @@ class SharedFile {
       .cast<Utf8>()
       .toDartString();
 
-  int sizeBytes = 1024 * 1024 * 16;
+  int get sizeBytes => _p3p.GetSharedFileSizeBytes(_p3p.piId, intId);
 
   void delete() {
     _p3p.DeleteSharedFile(_p3p.piId, intId);

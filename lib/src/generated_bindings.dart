@@ -935,6 +935,22 @@ class P3pgo {
   late final _GetSharedFileLocalFilePath = _GetSharedFileLocalFilePathPtr
       .asFunction<ffi.Pointer<ffi.Char> Function(int, int)>();
 
+  int GetSharedFileSizeBytes(
+    int piId,
+    int fileId,
+  ) {
+    return _GetSharedFileSizeBytes(
+      piId,
+      fileId,
+    );
+  }
+
+  late final _GetSharedFileSizeBytesPtr =
+      _lookup<ffi.NativeFunction<GoInt64 Function(GoInt, GoUint)>>(
+          'GetSharedFileSizeBytes');
+  late final _GetSharedFileSizeBytes =
+      _GetSharedFileSizeBytesPtr.asFunction<int Function(int, int)>();
+
   void DeleteSharedFile(
     int piId,
     int fileId,
@@ -962,6 +978,7 @@ final class _GoString_ extends ffi.Struct {
 }
 
 typedef ptrdiff_t = ffi.Long;
+typedef Dartptrdiff_t = int;
 
 final class GoInterface extends ffi.Struct {
   external ffi.Pointer<ffi.Void> t;
@@ -981,8 +998,11 @@ final class GoSlice extends ffi.Struct {
 
 typedef GoInt = GoInt64;
 typedef GoInt64 = ffi.LongLong;
+typedef DartGoInt64 = int;
 typedef GoUint8 = ffi.UnsignedChar;
+typedef DartGoUint8 = int;
 typedef GoUint = GoUint64;
 typedef GoUint64 = ffi.UnsignedLongLong;
+typedef DartGoUint64 = int;
 
 const int NULL = 0;

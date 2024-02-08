@@ -106,7 +106,7 @@ class P3p extends P3pgo {
     calloc.free(log);
   }
 
-  void createSharedFile(
+  String? createSharedFile(
     UserInfo ui, {
     required String localFilePath,
     required String remoteFilePath,
@@ -114,9 +114,13 @@ class P3p extends P3pgo {
     final localFilePath_ = localFilePath.toNativeUtf8();
     final remoteFilePath_ = remoteFilePath.toNativeUtf8();
 
-    CreateFile(piId, ui.id, localFilePath_.cast(), remoteFilePath_.cast());
+    final out =
+        CreateFile(piId, ui.id, localFilePath_.cast(), remoteFilePath_.cast());
     calloc.free(localFilePath_);
     calloc.free(remoteFilePath_);
+
+    final strOut = out.cast<Utf8>().toDartString();
+    return strOut == '' ? null : strOut;
   }
 
   Iterable<UserInfo> getAllUserInfo() {
