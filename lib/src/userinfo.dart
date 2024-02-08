@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'dart:ffi';
-import 'dart:io';
 
 import 'package:ffi/ffi.dart';
 import 'package:p3p/p3p.dart';
@@ -164,6 +163,8 @@ class SharedFile {
   String get localFilePath => _p3p.GetSharedFileLocalFilePath(_p3p.piId, intId)
       .cast<Utf8>()
       .toDartString();
+
+  int sizeBytes = 1024 * 1024 * 16;
 
   void delete() {
     _p3p.DeleteSharedFile(_p3p.piId, intId);
