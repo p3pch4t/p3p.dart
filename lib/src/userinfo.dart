@@ -160,6 +160,8 @@ class SharedFile {
   String get filePath =>
       _p3p.GetSharedFileFilePath(_p3p.piId, intId).cast<Utf8>().toDartString();
 
+  set filePath(String fp) => throw UnimplementedError("filePath can't be set");
+
   String get localFilePath => _p3p.GetSharedFileLocalFilePath(_p3p.piId, intId)
       .cast<Utf8>()
       .toDartString();
