@@ -67,6 +67,18 @@ class UserInfo {
     calloc.free(name_);
   }
 
+  List<SharedFilesMetadata> get sharedFilesMetadata {
+    final result = _p3p.GetUserInfoSharedFilesMetadataIDs(_p3p.piId, intId)
+        .cast<Utf8>()
+        .toDartString();
+    final idList = json.decode(result) as List<dynamic>? ?? [];
+    final fseids = <SharedFilesMetadata>[];
+    for (final fseid in idList) {
+      fseids.add(SharedFilesMetadata(_p3p, fseid as int));
+    }
+    return fseids;
+  }
+
   String get name => switch (_type) {
         UserInfoType.privateInfo =>
           _p3p.GetPrivateInfoUsername(_p3p.piId).cast<Utf8>().toDartString(),
@@ -109,6 +121,43 @@ class UserInfo {
 
   bool forceSendIntroduceEvent() =>
       _p3p.ForceSendIntroduceEvent(_p3p.piId, intId) == 1;
+}
+
+class SharedFilesMetadata {
+  SharedFilesMetadata(this._p3p, this.intId);
+  final P3p _p3p;
+  final int intId;
+  int get id => _p3p.GetReceivedSharedFilesMetadataID(_p3p.piId, intId);
+
+  String get dbKeyID {
+    final rec = _p3p.GetReceivedSharedFilesMetadataDBKeyID(_p3p.piId, intId);
+    final str = rec.cast<Utf8>().toDartString();
+    calloc.free(rec);
+    return str;
+  }
+
+  String get keyPart {
+    final rec = _p3p.GetReceivedSharedFilesMetadataKeyPart(_p3p.piId, intId);
+    final str = rec.cast<Utf8>().toDartString();
+    calloc.free(rec);
+    return str;
+  }
+
+  String get filesEndpoint {
+    final rec =
+        _p3p.GetReceivedSharedFilesMetadataFilesEndpoint(_p3p.piId, intId);
+    final str = rec.cast<Utf8>().toDartString();
+    calloc.free(rec);
+    return str;
+  }
+
+  String get authentication {
+    final rec =
+        _p3p.GetReceivedSharedFilesMetadataAuthentication(_p3p.piId, intId);
+    final str = rec.cast<Utf8>().toDartString();
+    calloc.free(rec);
+    return str;
+  }
 }
 
 class PublicKey {

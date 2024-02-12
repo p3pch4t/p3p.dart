@@ -499,6 +499,23 @@ class P3pgo {
   late final _GetUserInfoEndpointStats =
       _GetUserInfoEndpointStatsPtr.asFunction<int Function(int, int)>();
 
+  ffi.Pointer<ffi.Char> GetUserInfoSharedFilesMetadataIDs(
+    int piId,
+    int uid,
+  ) {
+    return _GetUserInfoSharedFilesMetadataIDs(
+      piId,
+      uid,
+    );
+  }
+
+  late final _GetUserInfoSharedFilesMetadataIDsPtr = _lookup<
+          ffi.NativeFunction<ffi.Pointer<ffi.Char> Function(GoInt, GoInt64)>>(
+      'GetUserInfoSharedFilesMetadataIDs');
+  late final _GetUserInfoSharedFilesMetadataIDs =
+      _GetUserInfoSharedFilesMetadataIDsPtr.asFunction<
+          ffi.Pointer<ffi.Char> Function(int, int)>();
+
   ffi.Pointer<ffi.Char> GetQueuedEventIDs(
     int piId,
   ) {
@@ -966,6 +983,106 @@ class P3pgo {
           'DeleteSharedFile');
   late final _DeleteSharedFile =
       _DeleteSharedFilePtr.asFunction<void Function(int, int)>();
+
+  ffi.Pointer<ffi.Char> GetUserInfoSharedFilesIDs(
+    int piId,
+    int uid,
+  ) {
+    return _GetUserInfoSharedFilesIDs(
+      piId,
+      uid,
+    );
+  }
+
+  late final _GetUserInfoSharedFilesIDsPtr = _lookup<
+          ffi.NativeFunction<ffi.Pointer<ffi.Char> Function(GoInt, GoInt64)>>(
+      'GetUserInfoSharedFilesIDs');
+  late final _GetUserInfoSharedFilesIDs = _GetUserInfoSharedFilesIDsPtr
+      .asFunction<ffi.Pointer<ffi.Char> Function(int, int)>();
+
+  int GetReceivedSharedFilesMetadataID(
+    int piId,
+    int uid,
+  ) {
+    return _GetReceivedSharedFilesMetadataID(
+      piId,
+      uid,
+    );
+  }
+
+  late final _GetReceivedSharedFilesMetadataIDPtr =
+      _lookup<ffi.NativeFunction<GoUint Function(GoInt, GoUint)>>(
+          'GetReceivedSharedFilesMetadataID');
+  late final _GetReceivedSharedFilesMetadataID =
+      _GetReceivedSharedFilesMetadataIDPtr.asFunction<int Function(int, int)>();
+
+  ffi.Pointer<ffi.Char> GetReceivedSharedFilesMetadataDBKeyID(
+    int piId,
+    int uid,
+  ) {
+    return _GetReceivedSharedFilesMetadataDBKeyID(
+      piId,
+      uid,
+    );
+  }
+
+  late final _GetReceivedSharedFilesMetadataDBKeyIDPtr = _lookup<
+          ffi.NativeFunction<ffi.Pointer<ffi.Char> Function(GoInt, GoUint)>>(
+      'GetReceivedSharedFilesMetadataDBKeyID');
+  late final _GetReceivedSharedFilesMetadataDBKeyID =
+      _GetReceivedSharedFilesMetadataDBKeyIDPtr.asFunction<
+          ffi.Pointer<ffi.Char> Function(int, int)>();
+
+  ffi.Pointer<ffi.Char> GetReceivedSharedFilesMetadataKeyPart(
+    int piId,
+    int uid,
+  ) {
+    return _GetReceivedSharedFilesMetadataKeyPart(
+      piId,
+      uid,
+    );
+  }
+
+  late final _GetReceivedSharedFilesMetadataKeyPartPtr = _lookup<
+          ffi.NativeFunction<ffi.Pointer<ffi.Char> Function(GoInt, GoUint)>>(
+      'GetReceivedSharedFilesMetadataKeyPart');
+  late final _GetReceivedSharedFilesMetadataKeyPart =
+      _GetReceivedSharedFilesMetadataKeyPartPtr.asFunction<
+          ffi.Pointer<ffi.Char> Function(int, int)>();
+
+  ffi.Pointer<ffi.Char> GetReceivedSharedFilesMetadataFilesEndpoint(
+    int piId,
+    int uid,
+  ) {
+    return _GetReceivedSharedFilesMetadataFilesEndpoint(
+      piId,
+      uid,
+    );
+  }
+
+  late final _GetReceivedSharedFilesMetadataFilesEndpointPtr = _lookup<
+          ffi.NativeFunction<ffi.Pointer<ffi.Char> Function(GoInt, GoUint)>>(
+      'GetReceivedSharedFilesMetadataFilesEndpoint');
+  late final _GetReceivedSharedFilesMetadataFilesEndpoint =
+      _GetReceivedSharedFilesMetadataFilesEndpointPtr.asFunction<
+          ffi.Pointer<ffi.Char> Function(int, int)>();
+
+  ffi.Pointer<ffi.Char> GetReceivedSharedFilesMetadataAuthentication(
+    int piId,
+    int uid,
+  ) {
+    return _GetReceivedSharedFilesMetadataAuthentication(
+      piId,
+      uid,
+    );
+  }
+
+  late final _GetReceivedSharedFilesMetadataAuthenticationPtr = _lookup<
+          ffi.NativeFunction<ffi.Pointer<ffi.Char> Function(GoInt, GoUint)>>(
+      'GetReceivedSharedFilesMetadataAuthentication');
+  late final _GetReceivedSharedFilesMetadataAuthentication =
+      _GetReceivedSharedFilesMetadataAuthenticationPtr.asFunction<
+          ffi.Pointer<ffi.Char> Function(int, int)>();
 }
 
 final class max_align_t extends ffi.Opaque {}
